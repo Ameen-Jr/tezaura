@@ -708,11 +708,6 @@ function App() {
   const [showIntro, setShowIntro] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  useEffect(() => {
-    // Set default password if not exists
-    if (!localStorage.getItem("adminPassword")) localStorage.setItem("adminPassword", "admin@123");
-  }, []);
-
   // If intro is running, show it. If not logged in, show login.
   if (showIntro) return <CinematicIntro onComplete={() => setShowIntro(false)} />;
   if (!isLoggedIn) return <LoginScreen onLogin={() => setIsLoggedIn(true)} />;

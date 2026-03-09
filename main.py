@@ -1263,7 +1263,7 @@ def get_dashboard_stats():
             # 2. Gender Breakdown per Class
             # Returns rows like: ('10', 'Male', 15), ('10', 'Female', 12)
             cursor.execute("""
-                SELECT class_standard, gender, COUNT(*) 
+                SELECT class_standard, gender, COUNT(*) as cnt
                 FROM students 
                 WHERE is_active = 1 
                 GROUP BY class_standard, gender
@@ -1276,7 +1276,7 @@ def get_dashboard_stats():
             for r in rows:
                 cls = r["class_standard"]
                 gender = r["gender"]
-                count = r[2]  # COUNT(*) has no column name, use index
+                count = r["cnt"]
                 if cls not in demographics: demographics[cls] = {"Male": 0, "Female": 0}
                 demographics[cls][gender] = count
 

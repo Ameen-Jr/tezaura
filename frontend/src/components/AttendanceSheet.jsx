@@ -13,11 +13,19 @@ function AttendanceSheet() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
+  const [acadYear, setAcadYear] = useState("...");
 
   // --- 1. FETCH STUDENTS ---
   useEffect(() => {
     fetchStudents();
   }, [classStd, division, date, session]);
+
+  useEffect(() => {
+  fetch(`${API_BASE}/settings/academic-year`)
+    .then(res => res.json())
+    .then(data => setAcadYear(data.academic_year || "2025-26"))
+    .catch(() => setAcadYear("2025-26"));
+}, []);
 
   const fetchStudents = async () => {
     setLoading(true);
@@ -105,7 +113,7 @@ function AttendanceSheet() {
 
             {/* 2. The Original Badge */}
             <div style={{ backgroundColor: "#EEF2FF", padding: "8px 15px", borderRadius: "20px", color: "#4F46E5", fontWeight: "bold", border: "1px solid #C7D2FE", fontSize: "14px" }}>
-                Academic Year 2025-26
+                Academic Year {acadYear}
             </div>
         </div>
       </div>
