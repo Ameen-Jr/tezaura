@@ -16,6 +16,17 @@ function ExamManager() {
   // Overall Rank State
   const [selectedExamIds, setSelectedExamIds] = useState([]);
   const [overallRankList, setOverallRankList] = useState([]);
+  // Term Exam State
+    const [termExamName, setTermExamName] = useState("");
+    const [termExamDate, setTermExamDate] = useState("");
+    const [termSubjects, setTermSubjects] = useState([]);
+    const [groupedExams, setGroupedExams] = useState([]);
+    const [activeTermExam, setActiveTermExam] = useState(null);
+    const [marksheetData, setMarksheetData] = useState([]);
+    const [marksheetSortBy, setMarksheetSortBy] = useState("name");
+    const [splitGender, setSplitGender] = useState(false);
+    const [selectedTermExams, setSelectedTermExams] = useState([]);
+    const [isSelectMode, setIsSelectMode] = useState(false);
 
   const fetchExams = async () => {
     try {      
@@ -25,10 +36,198 @@ function ExamManager() {
     } catch (err) { console.error(err); }
   };
 
+  const getDefaultSubjects = (cls) => {
+    if (cls === "8") {
+        return [
+            { subject_name: "LAN-I",  max_marks: 40, sort_order: 0 },
+            { subject_name: "LAN-II", max_marks: 40, sort_order: 1 },
+            { subject_name: "ENG",    max_marks: 40, sort_order: 2 },
+            { subject_name: "HINDI",  max_marks: 40, sort_order: 3 },
+            { subject_name: "PHY",    max_marks: 20, sort_order: 4 },
+            { subject_name: "CHE",    max_marks: 20, sort_order: 5 },
+            { subject_name: "BIO",    max_marks: 20, sort_order: 6 },
+            { subject_name: "SS",     max_marks: 40, sort_order: 7 },
+            { subject_name: "MATHS",  max_marks: 40, sort_order: 8 },
+        ];
+    } else {
+        return [
+            { subject_name: "LAN-I",  max_marks: 40, sort_order: 0 },
+            { subject_name: "LAN-II", max_marks: 40, sort_order: 1 },
+            { subject_name: "ENG",    max_marks: 80, sort_order: 2 },
+            { subject_name: "HINDI",  max_marks: 40, sort_order: 3 },
+            { subject_name: "PHY",    max_marks: 40, sort_order: 4 },
+            { subject_name: "CHE",    max_marks: 40, sort_order: 5 },
+            { subject_name: "BIO",    max_marks: 40, sort_order: 6 },
+            { subject_name: "SS",     max_marks: 80, sort_order: 7 },
+            { subject_name: "MATHS",  max_marks: 80, sort_order: 8 },
+        ];
+    }
+    };
+
+    const fetchGroupedExams = async () => {
+    try {
+        const res = await fetch(`http://127.0.0.1:8000/exams/grouped?class_std=${classStd}&division=${division}`);
+        const data = await res.json();
+        setGroupedExams(data);
+    } catch (err) { console.error(err); }
+};
+
+const openTermMarksheet = async (termExam) => {
+    setActiveTermExam(termExam);
+    setMessage("⏳ Loading marksheet...");
+    try {
+        // 1. Fetch students for this class & division
+        const resStudents = await fetch(`http://127.0.0.1:8000/reports/index?class_std=${classStd}&division=${division}`);
+        const dataStudents = await resStudents.json();
+        const classList = [...(dataStudents.boys || []), ...(dataStudents.girls || [])];
+
+        // 2. For each subject (exam_id), fetch existing marks
+        const markMap = {}; // { student_id: { exam_id: marks } }
+        for (const subj of termExam.subjects) {
+            const resMarks = await fetch(`http://127.0.0.1:8000/exams/${subj.exam_id}/results`);
+            const dataMarks = await resMarks.json();
+            (dataMarks.results || []).forEach(r => {
+                if (!markMap[r.id]) markMap[r.id] = {};
+                markMap[r.id][subj.exam_id] = r.marks === 0 ? "" : r.marks;
+            });
+        }
+
+        // 3. Build marksheet rows
+        const rows = classList.map(student => ({
+            ...student,
+            marks: termExam.subjects.reduce((acc, subj) => {
+                acc[subj.exam_id] = markMap[student.id]?.[subj.exam_id] ?? "";
+                return acc;
+            }, {})
+        }));
+
+        rows.sort((a, b) => a.name.localeCompare(b.name));
+        setMarksheetData(rows);
+        setMarksheetSortBy("name");
+        setView("marksheet");
+        setMessage("");
+    } catch (err) { console.error(err); setMessage("❌ Connection Error"); }
+    };
+
+    const handleCreateTermExam = async (e) => {
+    e.preventDefault();
+    if (!termExamName || !termExamDate) {
+        setMessage("⚠️ Please enter exam name and date.");
+        return;
+    }
+    const payload = {
+        name: termExamName,
+        date: termExamDate,
+        class_standard: classStd,
+        division: division,
+        subjects: termSubjects.map((s, i) => ({ ...s, sort_order: i }))
+    };
+    try {
+        const res = await fetch("http://127.0.0.1:8000/exams/term", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+            setMessage("✅ Term Exam Created!");
+            setView("list");
+            fetchExams();
+            fetchGroupedExams();
+            setTermExamName("");
+            setTermExamDate("");
+        } else { setMessage("❌ Error creating exam"); }
+    } catch (err) { setMessage("❌ Connection Error"); }
+    };
+
+    const handleMarksheetChange = (studentId, examId, value) => {
+    setMarksheetData(prev => prev.map(s =>
+        s.id === studentId
+            ? { ...s, marks: { ...s.marks, [examId]: value } }
+            : s
+    ));
+};
+
+const getSortedMarksheet = () => {
+    const rows = [...marksheetData];
+    if (marksheetSortBy === "name") {
+        return rows.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (marksheetSortBy === "rank") {
+        return rows.sort((a, b) => {
+            const totalA = Object.values(a.marks).reduce((s, v) => s + (parseFloat(v) || 0), 0);
+            const totalB = Object.values(b.marks).reduce((s, v) => s + (parseFloat(v) || 0), 0);
+            return totalB - totalA;
+        });
+    } else {
+        // Sort by specific subject exam_id
+        return rows.sort((a, b) => (parseFloat(b.marks[marksheetSortBy]) || 0) - (parseFloat(a.marks[marksheetSortBy]) || 0));
+    }
+};
+
+const submitMarksheet = async () => {
+    const records = [];
+    marksheetData.forEach(student => {
+        Object.entries(student.marks).forEach(([examId, marks]) => {
+            records.push({
+                student_id: student.id,
+                exam_id: parseInt(examId),
+                marks_obtained: marks === "" ? 0 : parseFloat(marks)
+            });
+        });
+    });
+    try {
+        const res = await fetch("http://127.0.0.1:8000/marks/bulk", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ records })
+        });
+        if (res.ok) {
+            setMessage("✅ Marksheet Saved!");
+            setTimeout(() => setView("list"), 1000);
+        } else { setMessage("❌ Save failed"); }
+    } catch (err) { setMessage("❌ Connection Error"); }
+    };
+
+    const handleDeleteTermExams = async () => {
+    if (selectedTermExams.length === 0) return;
+    const confirmed = window.confirm(
+        `⚠️ Delete ${selectedTermExams.length} selected exam(s)?\n\nThis will permanently remove all marks entered for these exams. This cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    try {
+        // Collect all exam_ids from selected term exam names
+        const examIdsToDelete = [];
+        groupedExams.forEach(termExam => {
+            if (selectedTermExams.includes(termExam.name)) {
+                termExam.subjects.forEach(s => examIdsToDelete.push(s.exam_id));
+            }
+        });
+
+        // Delete each exam_id (existing DELETE endpoint handles marks cleanup)
+        await Promise.all(examIdsToDelete.map(id =>
+            fetch(`http://127.0.0.1:8000/exams/${id}`, { method: "DELETE" })
+        ));
+
+        setMessage(`🗑️ ${selectedTermExams.length} exam(s) deleted.`);
+        setSelectedTermExams([]);
+        setIsSelectMode(false);
+        fetchGroupedExams();
+    } catch (err) {
+        setMessage("❌ Error deleting exams.");
+    }
+    };
+
+    const toggleTermExamSelection = (name) => {
+    setSelectedTermExams(prev =>
+        prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]
+    );
+    };
+
   useEffect(() => {
     fetchExams();
-    setSelectedExamIds([]); 
-  }, [classStd, division]); 
+    fetchGroupedExams();
+    setSelectedExamIds([]);
+    }, [classStd, division]);
+
+
 
   // --- NEW: Auto-refresh Mark Sheet when Division changes ---
   useEffect(() => {
@@ -120,6 +319,29 @@ function ExamManager() {
     }
   };
 
+  const handleDeleteExam = async (exam) => {
+    const confirmed = window.confirm(
+        `⚠️ Delete "${exam.name}" (${exam.subject})?\n\nThis will permanently remove the exam AND all entered marks. This cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    try {
+        const res = await fetch(`http://127.0.0.1:8000/exams/${exam.id}`, {
+            method: "DELETE"
+        });
+        if (res.ok) {
+            setMessage(`🗑️ "${exam.name}" deleted successfully.`);
+            // Also deselect it from the rank checkboxes if it was selected
+            setSelectedExamIds(prev => prev.filter(id => id !== exam.id));
+            fetchExams();
+        } else {
+            setMessage("❌ Failed to delete exam.");
+        }
+    } catch (err) {
+        setMessage("❌ Connection error during delete.");
+    }
+    };
+
   const generateOverallRank = async () => {
     if (selectedExamIds.length === 0) {
         setMessage("⚠️ Select at least one exam.");
@@ -156,12 +378,18 @@ function ExamManager() {
   };
 
   return (
-    <div style={{ maxWidth: "900px", margin: "0 auto", padding: "20px", fontFamily: "sans-serif" }}>
+    <div style={{ maxWidth: view === "marksheet" ? "100%" : "900px", margin: "0 auto", padding: view === "marksheet" ? "20px 40px" : "20px", fontFamily: "sans-serif" }}>
       
       <div className="print-header">
           <h1>Universal Trust</h1>
-          <p>{view === "overall" ? "Overall Academic Performance" : `Exam Result: ${selectedExam?.name}`}</p>
-          <p style={{ fontSize: "12pt" }}>Class: {classStd} {division ? ` - ${division}` : ""} | Generated: {new Date().toLocaleDateString()}</p>
+          {view === "marksheet" && activeTermExam ? (
+    <p style={{ fontSize: "12pt" }}>Class: {classStd} {division ? ` - ${division}` : ""} | {activeTermExam.name}</p>
+) : (
+    <>
+        <p>{view === "overall" ? "Overall Academic Performance" : `Exam Result: ${selectedExam?.name}`}</p>
+        <p style={{ fontSize: "12pt" }}>Class: {classStd} {division ? ` - ${division}` : ""} | Generated: {new Date().toLocaleDateString()}</p>
+    </>
+)}
       </div>
 
       {/* --- HEADER WITH ANIMATION --- */}
@@ -189,60 +417,116 @@ function ExamManager() {
                         <option value="10">10</option>
                     </select>
                 </div>
-                {/* REMOVED GLOBAL DIVISION SELECTOR FROM HERE */}
-                <button onClick={() => setView("create")} style={{ padding: "8px 15px", backgroundColor: "#27ae60", color: "white", border: "none", cursor: "pointer", borderRadius: "5px" }}>+ New Exam</button>
-            </div>
-            
-            {/* OVERALL RANK SECTION (Updated: Division Selector Added Here) */}
-            <div className="no-print card-glass" style={{ backgroundColor: "#e8f6f3", padding: "20px", marginBottom: "20px", border: "1px solid #1abc9c" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <h3 style={{ margin: "0", color: "#16a085" }}>🏆 Generate Overall Rank List</h3>
-                    
-                    {/* --- DIVISION SELECTOR FOR RANKS --- */}
-                    <select value={division} onChange={(e) => setDivision(e.target.value)} style={{ padding: "5px", borderRadius: "4px", border: "1px solid #16a085" }}>
-                        <option value="">All Divisions</option>
-                        <option value="A">Division A</option>
-                        <option value="B">Division B</option>
-                        <option value="C">Division C</option>
-                    </select>
-                </div>
-                
-                <p style={{ margin: "10px 0", fontSize: "14px", color: "#555" }}>Select exams to calculate cumulative rank:</p>
-                
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", margin: "10px 0" }}>
-                    {exams.length > 0 ? exams.map(exam => (
-                        <label key={exam.id} style={{ display: "flex", alignItems: "center", gap: "5px", backgroundColor: "white", padding: "5px 10px", borderRadius: "15px", border: "1px solid #ccc", cursor: "pointer" }}>
-                            <input type="checkbox" checked={selectedExamIds.includes(exam.id)} onChange={() => toggleExamSelection(exam.id)} />
-                            <span style={{ fontWeight: "bold" }}>
-    {exam.name} <span style={{ fontWeight: "normal", color: "#666", fontSize: "0.9em" }}>({exam.subject})</span>
-                            </span> 
-                        </label>
-                    )) : <span style={{ color: "#7f8c8d" }}>No exams available.</span>}
-                </div>
-                
-                <button onClick={generateOverallRank} style={{ padding: "8px 15px", backgroundColor: "#16a085", color: "white", border: "none", cursor: "pointer", borderRadius: "5px" }}>Generate Rank List</button>
+                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                        <label><strong>Division:</strong></label>
+                        <select value={division} onChange={(e) => setDivision(e.target.value)} style={{ padding: "8px", borderRadius: "5px", border: "1px solid #ccc" }}>
+                            <option value="">All</option>
+                            <option value="A">A</option>
+                            <option value="B">B</option>
+                            <option value="C">C</option>
+                        </select>
+                    </div>
+                <button onClick={() => { setTermSubjects(getDefaultSubjects(classStd)); setView("create-term"); }} style={{ padding: "8px 15px", backgroundColor: "#27ae60", color: "white", border: "none", cursor: "pointer", borderRadius: "5px" }}>+ New Exam</button>
             </div>
         </div>
       )}
 
       {message && <div className="no-print" style={{ textAlign: "center", padding: "10px", backgroundColor: "#fff3cd", marginBottom: "15px", borderRadius: "5px" }}>{message}</div>}
 
-      {/* VIEW 1: EXAM LIST */}
-      {view === "list" && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: "20px" }}>
-            {exams.map(exam => (
-                <div key={exam.id} className="card-glass" style={{ padding: "20px", borderLeft: "5px solid #3498db" }}>
-                    <h3 style={{ margin: "0 0 5px 0" }}>{exam.name}</h3>
-                    <p style={{ margin: 0, color: "#7f8c8d" }}>{exam.subject} | Max: {exam.max_marks}</p>
-                    <p style={{ fontSize: "12px", color: "#95a5a6" }}>📅 {exam.date}</p>
-                    <div style={{ marginTop: "15px", display: "flex", gap: "10px" }}>
-                        <button onClick={() => openMarking(exam)} style={{ flex: 1, padding: "5px", cursor: "pointer", backgroundColor: "#f39c12", color: "white", border: "none" }}>🖊 Marks</button>
-                        <button onClick={() => openResult(exam)} style={{ flex: 1, padding: "5px", cursor: "pointer", backgroundColor: "#34495e", color: "white", border: "none" }}>📊 Result</button>
-                    </div>
-                </div>
-            ))}
+
+      {/* TERM EXAM GROUPED CARDS */}
+      {view === "list" && groupedExams.length > 0 && (
+    <div style={{ marginTop: "30px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid #3498db", paddingBottom: "8px", marginBottom: "20px" }}>
+            <h3 style={{ color: "#2c3e50", margin: 0 }}>📋 Term Exams</h3>
+            <div style={{ display: "flex", gap: "10px" }}>
+                {isSelectMode && selectedTermExams.length > 0 && (
+                    <button onClick={handleDeleteTermExams} style={{ padding: "6px 14px", backgroundColor: "#e74c3c", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}>
+                        🗑️ Delete ({selectedTermExams.length})
+                    </button>
+                )}
+                <button onClick={() => { setIsSelectMode(!isSelectMode); setSelectedTermExams([]); }}
+                    style={{ padding: "6px 14px", backgroundColor: isSelectMode ? "#95a5a6" : "#34495e", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}>
+                    {isSelectMode ? "Cancel" : "✂️ Select"}
+                </button>
+            </div>
         </div>
-      )}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
+            {groupedExams.map((termExam, index) => {
+                const isSelected = selectedTermExams.includes(termExam.name);
+                return (
+                    <div key={index} className="card-glass" onClick={() => isSelectMode && toggleTermExamSelection(termExam.name)}
+                        style={{ padding: "20px", borderLeft: `5px solid ${isSelected ? "#e74c3c" : "#8e44ad"}`, outline: isSelected ? "2px solid #e74c3c" : "none", cursor: isSelectMode ? "pointer" : "default", backgroundColor: isSelected ? "#fff5f5" : "white", transition: "all 0.15s ease" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                            <h3 style={{ margin: "0 0 5px 0", color: "#2c3e50" }}>{termExam.name}</h3>
+                            {isSelectMode && (
+                                <div style={{ width: "20px", height: "20px", borderRadius: "50%", border: "2px solid #e74c3c", backgroundColor: isSelected ? "#e74c3c" : "white", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                    {isSelected && <span style={{ color: "white", fontSize: "12px" }}>✓</span>}
+                                </div>
+                            )}
+                        </div>
+                        <p style={{ margin: "0 0 8px 0", fontSize: "12px", color: "#95a5a6" }}>📅 {termExam.date}</p>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", marginBottom: "12px" }}>
+                            {termExam.subjects.map(s => (
+                                <span key={s.exam_id} style={{ backgroundColor: "#f0e6ff", color: "#6c3483", padding: "2px 8px", borderRadius: "10px", fontSize: "12px" }}>
+                                    {s.subject} / {s.max_marks}
+                                </span>
+                            ))}
+                        </div>
+                        {!isSelectMode && (
+                            <button onClick={() => openTermMarksheet(termExam)} style={{ width: "100%", padding: "8px", cursor: "pointer", backgroundColor: "#8e44ad", color: "white", border: "none", borderRadius: "4px" }}>
+                                🗂️ Open Marksheet
+                            </button>
+                        )}
+                    </div>
+                );
+            })}
+        </div>
+    </div>
+    )}
+
+
+                {/* VIEW: CREATE TERM EXAM */}
+{view === "create-term" && (
+    <div className="card-glass" style={{ maxWidth: "650px", margin: "0 auto", padding: "30px" }}>
+        <h3>📋 Create Term Exam</h3>
+        <form onSubmit={handleCreateTermExam} style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
+            <input placeholder="Exam Name (e.g. Christmas Exam 2025)" value={termExamName} onChange={e => setTermExamName(e.target.value)} required style={{ padding: "10px" }} />
+            <input type="date" value={termExamDate} onChange={e => setTermExamDate(e.target.value)} required style={{ padding: "10px" }} />
+
+            <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                    <strong>Subjects & Max Marks</strong>
+                    <button type="button" onClick={() => setTermSubjects([...termSubjects, { subject_name: "", max_marks: 40, sort_order: termSubjects.length }])}
+                        style={{ padding: "4px 10px", backgroundColor: "#2980b9", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}>+ Add Subject</button>
+                </div>
+                {termSubjects.map((subj, index) => (
+                    <div key={index} style={{ display: "flex", gap: "10px", alignItems: "center", marginBottom: "8px" }}>
+                        <input
+                            placeholder="Subject name"
+                            value={subj.subject_name}
+                            onChange={e => setTermSubjects(termSubjects.map((s, i) => i === index ? { ...s, subject_name: e.target.value } : s))}
+                            style={{ flex: 2, padding: "8px" }}
+                        />
+                        <input
+                            type="number"
+                            value={subj.max_marks}
+                            onChange={e => setTermSubjects(termSubjects.map((s, i) => i === index ? { ...s, max_marks: parseFloat(e.target.value) } : s))}
+                            style={{ flex: 1, padding: "8px" }}
+                        />
+                        <button type="button" onClick={() => setTermSubjects(termSubjects.filter((_, i) => i !== index))}
+                            style={{ padding: "6px 10px", backgroundColor: "#e74c3c", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}>✕</button>
+                    </div>
+                ))}
+            </div>
+
+            <div style={{ display: "flex", gap: "10px" }}>
+                <button type="submit" style={{ flex: 1, padding: "10px", backgroundColor: "#27ae60", color: "white", border: "none" }}>Create Exam</button>
+                <button type="button" onClick={() => setView("list")} style={{ flex: 1, padding: "10px", backgroundColor: "#95a5a6", color: "white", border: "none" }}>Cancel</button>
+            </div>
+        </form>
+    </div>
+)}
 
       {/* VIEW 2: CREATE EXAM FORM */}
       {view === "create" && (
@@ -341,6 +625,158 @@ function ExamManager() {
             </div>
         </div>
       )}
+
+      {/* VIEW: TERM EXAM MARKSHEET */}
+{view === "marksheet" && activeTermExam && (
+    <div>
+        <style>{`
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    
+    @media print {
+        table { border-collapse: collapse !important; width: 100% !important; }
+        th { 
+            background-color: #4a235a !important; 
+            color: white !important; 
+            border: 2px solid #000 !important; 
+            padding: 6px 4px !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        td { 
+            border: 1.5px solid #555 !important; 
+            padding: 5px 4px !important; 
+            text-align: center !important;
+        }
+        td:nth-child(2) { text-align: left !important; }
+        input { 
+            border: none !important; 
+            font-size: 11pt !important;
+            width: 100% !important;
+            text-align: center !important;
+        }
+        tr:nth-child(even) td { background-color: #f5f0ff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        h4 { margin: 8px 0 4px 0 !important; font-size: 11pt !important; }
+h4.girls-header { page-break-before: always !important; }
+    }
+`}</style>
+        <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "10px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <button onClick={() => setView("list")} style={{ padding: "8px 15px", cursor: "pointer" }}>← Back</button>
+                <h3 style={{ margin: 0 }}>🗂️ {activeTermExam.name}</h3>
+            </div>
+            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                <label style={{ fontWeight: "bold" }}>Sort by:</label>
+                <select value={marksheetSortBy} onChange={e => setMarksheetSortBy(e.target.value)} style={{ padding: "6px", borderRadius: "4px", border: "1px solid #ccc" }}>
+                    <option value="name">Name</option>
+                    <option value="rank">Total / Rank</option>
+                    {activeTermExam.subjects.map(s => (
+                        <option key={s.exam_id} value={s.exam_id}>{s.subject}</option>
+                    ))}
+                </select>
+                <button onClick={() => setSplitGender(!splitGender)} style={{ padding: "8px 15px", backgroundColor: splitGender ? "#8e44ad" : "#bdc3c7", color: "white", border: "none", cursor: "pointer", borderRadius: "5px" }}>
+    {splitGender ? "👫 Split: ON" : "👫 Split: OFF"}
+</button>
+<button onClick={submitMarksheet} style={{ padding: "8px 20px", backgroundColor: "#27ae60", color: "white", border: "none", cursor: "pointer", borderRadius: "5px" }}>💾 Save</button>
+                <button onClick={() => window.print()} style={{ padding: "8px 15px", backgroundColor: "#34495e", color: "white", border: "none", cursor: "pointer", borderRadius: "5px" }}>🖨️ Print</button>
+            </div>
+        </div>
+
+        {(() => {
+    const renderTable = (rows, labelOffset = 0) => {
+        const maxTotal = activeTermExam.subjects.reduce((s, subj) => s + subj.max_marks, 0);
+        return (
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "15px", tableLayout: "fixed", marginBottom: "30px" }}>
+                <thead>
+                    <tr style={{ backgroundColor: "#8e44ad", color: "white" }}>
+                        <th style={{ padding: "6px", textAlign: "left", width: "30px" }}>#</th>
+                        <th style={{ padding: "6px", textAlign: "left", width: "18%" }}>Student Name</th>
+                        {activeTermExam.subjects.map(s => (
+                            <th key={s.exam_id} style={{ padding: "6px", textAlign: "center" }}>
+                                {s.subject}<br />
+                                <span style={{ fontSize: "10px", opacity: 0.8 }}>/{s.max_marks}</span>
+                            </th>
+                        ))}
+                        <th style={{ padding: "6px", textAlign: "center", width: "6%" }}>Total</th>
+                        <th style={{ padding: "6px", textAlign: "center", width: "5%" }}>%</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {rows.map((student, index) => {
+                        const total = Object.values(student.marks).reduce((s, v) => s + (parseFloat(v) || 0), 0);
+                        const pct = maxTotal > 0 ? ((total / maxTotal) * 100).toFixed(1) : 0;
+                        const absIndex = labelOffset + index;
+                        return (
+                            <tr key={student.id} style={{ borderBottom: "1px solid #eee", backgroundColor: index % 2 === 0 ? "#fafafa" : "white" }}>
+                                <td style={{ padding: "8px", color: "#999" }}>{index + 1}</td>
+                                <td style={{ padding: "8px", fontWeight: "bold" }}>{student.name}</td>
+                                {activeTermExam.subjects.map((subj, subjIndex) => (
+                                    <td key={subj.exam_id} style={{ padding: "2px", textAlign: "center" }}>
+                                        <input
+                                            type="number"
+                                            data-row={absIndex}
+                                            data-col={subjIndex}
+                                            value={student.marks[subj.exam_id]}
+                                            onChange={e => handleMarksheetChange(student.id, subj.exam_id, e.target.value)}
+                                            onKeyDown={e => {
+                                                const totalCols = activeTermExam.subjects.length;
+                                                const totalRows = getSortedMarksheet().length;
+                                                let row = absIndex, col = subjIndex;
+                                                if (e.key === "ArrowRight" || (e.key === "Enter" && !e.shiftKey)) { col = Math.min(col + 1, totalCols - 1); }
+                                                else if (e.key === "ArrowLeft") { col = Math.max(col - 1, 0); }
+                                                else if (e.key === "ArrowDown") { row = Math.min(row + 1, totalRows - 1); }
+                                                else if (e.key === "ArrowUp") { row = Math.max(row - 1, 0); }
+                                                else return;
+                                                e.preventDefault();
+                                                const next = document.querySelector(`input[data-row="${row}"][data-col="${col}"]`);
+                                                if (next) next.focus();
+                                            }}
+                                            style={{ width: "100%", padding: "4px 2px", textAlign: "center", border: "1px solid #ddd", borderRadius: "3px", fontSize: "15px", boxSizing: "border-box", MozAppearance: "textfield", appearance: "textfield" }}
+                                            min="0"
+                                            max={subj.max_marks}
+                                        />
+                                    </td>
+                                ))}
+                                <td style={{ padding: "8px", textAlign: "center", fontWeight: "bold" }}>{total} / {maxTotal}</td>
+                                <td style={{ padding: "8px", textAlign: "center", fontWeight: "bold", color: pct >= 50 ? "#27ae60" : "#e74c3c" }}>{pct}%</td>
+                            </tr>
+                        );
+                    })}
+                </tbody>
+            </table>
+        );
+    };
+
+    const allRows = getSortedMarksheet();
+
+    if (!splitGender) {
+        return <div style={{ width: "100%" }}>{renderTable(allRows, 0)}</div>;
+    }
+
+    const boys = allRows.filter(s => s.gender === "Male");
+    const girls = allRows.filter(s => s.gender === "Female");
+
+    return (
+        <div style={{ width: "100%" }}>
+            {boys.length > 0 && (
+                <>
+                    <h4 style={{ color: "#2980b9", margin: "10px 0 8px 0" }}>👦 Boys ({boys.length})</h4>
+                    {renderTable(boys, 0)}
+                </>
+            )}
+            {girls.length > 0 && (
+                <>
+                    <h4 className="girls-header" style={{ color: "#e91e8c", margin: "10px 0 8px 0" }}>👧 Girls ({girls.length})</h4>
+                    {renderTable(girls, boys.length)}
+                </>
+            )}
+        </div>
+    );
+})()}
+
+    </div>
+)}
+
 
       {/* VIEW 5: OVERALL RANK LIST */}
       {view === "overall" && (

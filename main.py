@@ -9,13 +9,6 @@ import os
 from typing import List
 from datetime import datetime
 
-import sqlite3
-
-import sqlite3
-
-# ... existing imports ...
-
-# 👇 ADD THIS FUNCTION
 def check_and_migrate_db():
     try:
         # Connect to DB in the same folder
@@ -33,8 +26,6 @@ def check_and_migrate_db():
 
 # 👇 CALL IT IMMEDIATELY
 check_and_migrate_db()
-
-# ... app = FastAPI() ...
 
 app = FastAPI()
 
@@ -103,6 +94,27 @@ class StudentMarkSchema(BaseModel):
 class MarksSubmissionSchema(BaseModel):
     exam_id: int
     records: List[StudentMarkSchema]
+
+# --- TERM EXAM MODELS ---
+class TermExamSubjectSchema(BaseModel):
+    subject_name: str
+    max_marks: float
+    sort_order: int = 0
+
+class TermExamCreateSchema(BaseModel):
+    name: str
+    date: str
+    class_standard: str
+    division: str = ""
+    subjects: List[TermExamSubjectSchema]
+
+class BulkStudentMarkSchema(BaseModel):
+    student_id: int
+    exam_id: int
+    marks_obtained: float
+
+class BulkMarksSubmissionSchema(BaseModel):
+    records: List[BulkStudentMarkSchema]
 
 # --- LIBRARY MODELS ---
 class LibraryIssueSchema(BaseModel):
@@ -556,6 +568,101 @@ def get_exams(class_std: str):
             exams = [{"id": r[0], "name": r[1], "date": r[2], "subject": r[3], "max_marks": r[4]} for r in cursor.fetchall()]
             return exams
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/exams/term")
+def create_term_exam(data: TermExamCreateSchema):
+    try:
+        with sqlite3.connect("classflow.db") as connection:
+            cursor = connection.cursor()
+            created_exams = []
+
+            for subject in data.subjects:
+                # Create one exam row per subject
+                cursor.execute("""
+                    INSERT INTO exams (name, date, class_standard, division, subject, max_marks)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (data.name, data.date, data.class_standard, data.division, subject.subject_name, subject.max_marks))
+                
+                exam_id = cursor.lastrowid
+
+                # Record subject metadata in exam_subjects table
+                cursor.execute("""
+                    INSERT INTO exam_subjects (exam_id, subject_name, max_marks, sort_order)
+                    VALUES (?, ?, ?, ?)
+                """, (exam_id, subject.subject_name, subject.max_marks, subject.sort_order))
+
+                created_exams.append({"exam_id": exam_id, "subject": subject.subject_name})
+
+            connection.commit()
+            return {"status": "success", "message": f"Term exam '{data.name}' created with {len(created_exams)} subjects.", "exams": created_exams}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/exams/grouped")
+def get_exams_grouped(class_std: str, division: str = ""):
+    try:
+        with sqlite3.connect("classflow.db") as connection:
+            cursor = connection.cursor()
+
+            query = """
+                SELECT e.id, e.name, e.date, e.subject, e.max_marks, es.sort_order
+                FROM exams e
+                LEFT JOIN exam_subjects es ON e.id = es.exam_id
+                WHERE e.class_standard = ?
+            """
+            params = [class_std]
+            if division:
+                query += " AND e.division = ?"
+                params.append(division)
+            query += " ORDER BY e.date DESC, es.sort_order ASC"
+            cursor.execute(query, tuple(params))
+            rows = cursor.fetchall()
+
+            # Group by exam name
+            grouped = {}
+            for row in rows:
+                exam_id, name, date, subject, max_marks, sort_order = row
+                if name not in grouped:
+                    grouped[name] = {"name": name, "date": date, "subjects": []}
+                grouped[name]["subjects"].append({
+                    "exam_id": exam_id,
+                    "subject": subject,
+                    "max_marks": max_marks,
+                    "sort_order": sort_order or 0
+                })
+
+            return list(grouped.values())
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/marks/bulk")
+def submit_bulk_marks(data: BulkMarksSubmissionSchema):
+    try:
+        with sqlite3.connect("classflow.db") as connection:
+            cursor = connection.cursor()
+
+            for record in data.records:
+                # Upsert: update if exists, insert if not
+                cursor.execute("""
+                    SELECT id FROM marks 
+                    WHERE exam_id = ? AND student_id = ?
+                """, (record.exam_id, record.student_id))
+                existing = cursor.fetchone()
+
+                if existing:
+                    cursor.execute("""
+                        UPDATE marks SET marks_obtained = ? WHERE id = ?
+                    """, (record.marks_obtained, existing[0]))
+                else:
+                    cursor.execute("""
+                        INSERT INTO marks (exam_id, student_id, marks_obtained) 
+                        VALUES (?, ?, ?)
+                    """, (record.exam_id, record.student_id, record.marks_obtained))
+
+            connection.commit()
+            return {"status": "success", "message": f"{len(data.records)} mark records saved."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))            
 
 @app.post("/marks")
 def submit_marks(data: MarksSubmissionSchema):
@@ -1496,3 +1603,26 @@ async def restore_backup(file: UploadFile = File(...)):
 @app.get("/")
 def check_connection():
     return {"status": "ClassFlow Universal is Online"}
+
+@app.delete("/exams/{exam_id}")
+def delete_exam(exam_id: int):
+    try:
+        with sqlite3.connect("classflow.db") as connection:
+            cursor = connection.cursor()
+
+            # 1. Verify exam exists
+            cursor.execute("SELECT name FROM exams WHERE id = ?", (exam_id,))
+            exam = cursor.fetchone()
+            if not exam:
+                raise HTTPException(status_code=404, detail="Exam not found")
+
+            # 2. Delete all marks for this exam first (preserve referential integrity)
+            cursor.execute("DELETE FROM marks WHERE exam_id = ?", (exam_id,))
+
+            # 3. Now safely delete the exam itself
+            cursor.execute("DELETE FROM exams WHERE id = ?", (exam_id,))
+
+            connection.commit()
+            return {"status": "success", "message": f"Exam '{exam[0]}' and all its marks deleted."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
