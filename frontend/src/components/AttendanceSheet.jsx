@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import InteractiveFace from './InteractiveFace';
 import SafeLottie from './SafeLottie';
 import successAnim from './success gif.json';
+import API_BASE from '../config';
 
 function AttendanceSheet() {
   const [classStd, setClassStd] = useState("10");
@@ -22,7 +23,7 @@ function AttendanceSheet() {
     setLoading(true);
     try {
       // Get student list (Now includes School Name)
-      const res1 = await fetch(`http://127.0.0.1:8000/reports/index?class_std=${classStd}&division=${division}`);
+      const res1 = await fetch(`${API_BASE}/reports/index?class_std=${classStd}&division=${division}`);
       const data1 = await res1.json();
       let allStudents = [...data1.boys, ...data1.girls].sort((a,b) => a.name.localeCompare(b.name));
 
@@ -32,7 +33,7 @@ function AttendanceSheet() {
       const dayStr = parseInt(date.split("-")[2]); // Remove leading zeros
 
       // Fetch report for this specific Session (Day/Night)
-      const res2 = await fetch(`http://127.0.0.1:8000/reports/attendance-monthly?class_std=${classStd}&month=${monthName}&year=${yearStr}&session=${session}`);
+      const res2 = await fetch(`${API_BASE}/reports/attendance-monthly?class_std=${classStd}&month=${monthName}&year=${yearStr}&session=${session}`);
       const data2 = await res2.json();
 
       const merged = allStudents.map(s => {
@@ -63,7 +64,7 @@ function AttendanceSheet() {
         records: students.map(s => ({ student_id: s.id, status: s.status }))
     };
     try {
-        const res = await fetch("http://127.0.0.1:8000/attendance", {
+        const res = await fetch(`${API_BASE}/attendance`, {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
         });

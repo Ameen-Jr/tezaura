@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import API_BASE from '../config';
 
 function CustomListMaker() {
   // State for Filters
@@ -18,7 +19,7 @@ function CustomListMaker() {
     const fetchStudents = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`http://127.0.0.1:8000/reports/index?class_std=${classStd}&division=${division}`);
+        const res = await fetch(`${API_BASE}/reports/index?class_std=${classStd}&division=${division}`);
         const data = await res.json();
         
         if (res.ok) {

@@ -17,6 +17,16 @@ import SessionBadge from './components/SessionBadge';
 import About from './components/About';
 import BackupManager from './components/BackupManager';
 import settingsAnim from './components/settingsAnim.json';
+import API_BASE from './config';
+
+// --- PASSWORD HASHING UTILITY ---
+async function hashPassword(password) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+}
 
 //Splash Screen 
 const CinematicIntro = ({ onComplete }) => {
@@ -157,10 +167,14 @@ const LoginScreen = ({ onLogin }) => {
   const [error, setError] = useState(false);
   const canvasRef = useRef(null);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    const storedPass = localStorage.getItem("adminPassword") || "admin@123";
-    if (password === storedPass) {
+    const storedHash = localStorage.getItem("adminPasswordHash");
+    // If no hash stored yet, compare against default hashed password
+    const defaultHash = await hashPassword("admin@123");
+    const inputHash = await hashPassword(password);
+    const validHash = storedHash || defaultHash;
+    if (inputHash === validHash) {
       onLogin();
     } else {
       setError(true);
@@ -188,6 +202,8 @@ const LoginScreen = ({ onLogin }) => {
       }));
     }
 
+    let frameId;
+
     function draw() {
       ctx.fillStyle = "#000";
       ctx.fillRect(0, 0, width, height);
@@ -209,13 +225,16 @@ const LoginScreen = ({ onLogin }) => {
         ctx.fill();
       });
 
-      requestAnimationFrame(draw);
+      frameId = requestAnimationFrame(draw);
     }
 
     init();
     draw();
     window.addEventListener("resize", init);
-    return () => window.removeEventListener("resize", init);
+    return () => {
+      window.removeEventListener("resize", init);
+      cancelAnimationFrame(frameId);
+    };
   }, []);
 
   return (
@@ -386,10 +405,13 @@ const SettingsManager = () => {
     const [newPass, setNewPass] = useState("");
     const [confirmPass, setConfirmPass] = useState("");
     
-    const handleChangePassword = () => {
-        const storedPass = localStorage.getItem("adminPassword") || "admin@123";
-        
-        if (currentPass !== storedPass) {
+    const handleChangePassword = async () => {
+        const storedHash = localStorage.getItem("adminPasswordHash");
+        const defaultHash = await hashPassword("admin@123");
+        const validHash = storedHash || defaultHash;
+        const currentInputHash = await hashPassword(currentPass);
+
+        if (currentInputHash !== validHash) {
             alert("❌ Current password is incorrect.");
             return;
         }
@@ -402,7 +424,9 @@ const SettingsManager = () => {
             return;
         }
         
-        localStorage.setItem("adminPassword", newPass);
+        const newHash = await hashPassword(newPass);
+        localStorage.setItem("adminPasswordHash", newHash);
+        localStorage.removeItem("adminPassword"); // Clean up old plain text key
         alert("✅ Password Updated Successfully!\n\nPlease use the new password next time.");
         setCurrentPass(""); setNewPass(""); setConfirmPass("");
     };
@@ -490,7 +514,7 @@ const SettingsManager = () => {
             </div>
             
             <p style={{ marginTop: "30px", fontSize: "13px", color: "#9CA3AF", textAlign: "center" }}>
-                Tezaura Security Protocol • Local Storage Encrypted
+                Tezaura Security Protocol • SHA-256 Hashed
             </p>
         </div>
     );
@@ -504,11 +528,11 @@ function DashboardHome() {
   useEffect(() => {
     const loadStats = async () => {
         try {
-            const res = await fetch("http://127.0.0.1:8000/dashboard/stats");
+            const res = await fetch(`${API_BASE}/dashboard/stats`);
             const data = await res.json();
             setStats(data);
             // Fetch Activities
-            const actRes = await fetch("http://127.0.0.1:8000/dashboard/activity");
+            const actRes = await fetch(`${API_BASE}/dashboard/activity`);
             if (actRes.ok) {
                 const actData = await actRes.json();
                 setActivities(actData);

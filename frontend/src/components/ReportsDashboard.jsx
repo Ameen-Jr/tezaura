@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import API_BASE from '../config';
 
 function ReportsDashboard({ onViewProfile }) {
   const [reportType, setReportType] = useState("index"); 
@@ -25,7 +26,7 @@ function ReportsDashboard({ onViewProfile }) {
 
   useEffect(() => {
     if (reportType === "alumni") {
-        fetch("http://127.0.0.1:8000/alumni/years")
+        fetch(`${API_BASE}/alumni/years`)
             .then(res => res.json())
             .then(data => {
                 if (Array.isArray(data)) {
@@ -36,7 +37,7 @@ function ReportsDashboard({ onViewProfile }) {
             .catch(err => console.error("Alumni Year Fetch Error:", err));
     }
     else if (reportType === "discontinued") {
-        fetch("http://127.0.0.1:8000/reports/discontinued-years")
+        fetch(`${API_BASE}/reports/discontinued-years`)
             .then(res => res.json())
             .then(data => {
                 if (Array.isArray(data)) {
@@ -54,18 +55,18 @@ function ReportsDashboard({ onViewProfile }) {
     let url = "";
     
     if (reportType === "index") {
-        url = `http://127.0.0.1:8000/reports/index?class_std=${classStd}&division=${division}`;
+        url = `${API_BASE}/reports/index?class_std=${classStd}&division=${division}`;
     } else if (reportType === "pending") {
-        url = `http://127.0.0.1:8000/reports/pending-fees?class_std=${classStd}&month=${month}&division=${division}`;
+        url = `${API_BASE}/reports/pending-fees?class_std=${classStd}&month=${month}&division=${division}`;
     } else if (reportType === "attendance") {
         // --- UPDATED: Now includes &session=${session} ---
         // Adds &session=${session} to the end
-url = `http://127.0.0.1:8000/reports/attendance-monthly?class_std=${classStd}&month=${month}&year=${year}&division=${division}&session=${session}`;
+url = `${API_BASE}/reports/attendance-monthly?class_std=${classStd}&month=${month}&year=${year}&division=${division}&session=${session}`;
     } else if (reportType === "alumni") {
-        url = `http://127.0.0.1:8000/alumni/list?year=${selectedGradYear}`;
+        url = `${API_BASE}/alumni/list?year=${selectedGradYear}`;
     }
     else if (reportType === "discontinued") {
-        url = `http://127.0.0.1:8000/reports/discontinued-list?year=${selectedDiscYear}`;
+        url = `${API_BASE}/reports/discontinued-list?year=${selectedDiscYear}`;
     }
 
     try {
@@ -86,7 +87,7 @@ url = `http://127.0.0.1:8000/reports/attendance-monthly?class_std=${classStd}&mo
 
   const handleStudentClick = async (adm) => {
     try {
-        const res = await fetch(`http://127.0.0.1:8000/students/lookup/${adm}`);
+        const res = await fetch(`${API_BASE}/students/lookup/${adm}`);
         if (res.ok) {
             const fullStudent = await res.json();
             onViewProfile(fullStudent);

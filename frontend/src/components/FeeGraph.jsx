@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import API_BASE from '../config';
 
 const FeeGraph = () => {
   const [data, setData] = useState([]);
@@ -6,7 +7,7 @@ const FeeGraph = () => {
 
   // --- 1. FETCH REAL DATA FROM BACKEND ---
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/stats/monthly-fees")
+    fetch(`${API_BASE}/stats/monthly-fees`)
       .then(res => res.json())
       .then(realData => {
         // Handle empty database case nicely

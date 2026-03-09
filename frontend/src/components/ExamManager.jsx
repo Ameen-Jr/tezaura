@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import SafeLottie from './SafeLottie';
 import examAnim from './examAnim.json';
+import API_BASE from '../config';
 
 function ExamManager() {
   const [view, setView] = useState("list"); 
@@ -30,7 +31,7 @@ function ExamManager() {
 
   const fetchExams = async () => {
     try {      
-      const res = await fetch(`http://127.0.0.1:8000/exams?class_std=${classStd}&division=${division}`);
+      const res = await fetch(`${API_BASE}/exams?class_std=${classStd}&division=${division}`);
       const data = await res.json();
       setExams(data);
     } catch (err) { console.error(err); }
@@ -66,7 +67,7 @@ function ExamManager() {
 
     const fetchGroupedExams = async () => {
     try {
-        const res = await fetch(`http://127.0.0.1:8000/exams/grouped?class_std=${classStd}&division=${division}`);
+        const res = await fetch(`${API_BASE}/exams/grouped?class_std=${classStd}&division=${division}`);
         const data = await res.json();
         setGroupedExams(data);
     } catch (err) { console.error(err); }
@@ -77,14 +78,14 @@ const openTermMarksheet = async (termExam) => {
     setMessage("⏳ Loading marksheet...");
     try {
         // 1. Fetch students for this class & division
-        const resStudents = await fetch(`http://127.0.0.1:8000/reports/index?class_std=${classStd}&division=${division}`);
+        const resStudents = await fetch(`${API_BASE}/reports/index?class_std=${classStd}&division=${division}`);
         const dataStudents = await resStudents.json();
         const classList = [...(dataStudents.boys || []), ...(dataStudents.girls || [])];
 
         // 2. For each subject (exam_id), fetch existing marks
         const markMap = {}; // { student_id: { exam_id: marks } }
         for (const subj of termExam.subjects) {
-            const resMarks = await fetch(`http://127.0.0.1:8000/exams/${subj.exam_id}/results`);
+            const resMarks = await fetch(`${API_BASE}/exams/${subj.exam_id}/results`);
             const dataMarks = await resMarks.json();
             (dataMarks.results || []).forEach(r => {
                 if (!markMap[r.id]) markMap[r.id] = {};
@@ -123,7 +124,7 @@ const openTermMarksheet = async (termExam) => {
         subjects: termSubjects.map((s, i) => ({ ...s, sort_order: i }))
     };
     try {
-        const res = await fetch("http://127.0.0.1:8000/exams/term", {
+        const res = await fetch(`${API_BASE}/exams/term`, {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
         });
@@ -174,7 +175,7 @@ const submitMarksheet = async () => {
         });
     });
     try {
-        const res = await fetch("http://127.0.0.1:8000/marks/bulk", {
+        const res = await fetch(`${API_BASE}/marks/bulk`, {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ records })
         });
@@ -203,7 +204,7 @@ const submitMarksheet = async () => {
 
         // Delete each exam_id (existing DELETE endpoint handles marks cleanup)
         await Promise.all(examIdsToDelete.map(id =>
-            fetch(`http://127.0.0.1:8000/exams/${id}`, { method: "DELETE" })
+            fetch(`${API_BASE}/exams/${id}`, { method: "DELETE" })
         ));
 
         setMessage(`🗑️ ${selectedTermExams.length} exam(s) deleted.`);
@@ -240,7 +241,7 @@ const submitMarksheet = async () => {
     e.preventDefault();
     const payload = { ...newExam, class_standard: classStd, max_marks: parseFloat(newExam.max_marks) };
     try {
-      const res = await fetch("http://127.0.0.1:8000/exams", {
+      const res = await fetch(`${API_BASE}/exams`, {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload)
       });
       if (res.ok) {
@@ -257,10 +258,10 @@ const submitMarksheet = async () => {
     setMessage("⏳ Loading students...");
     try {
       // 1. Fetch correct student list for this Class & Division
-      const resStudents = await fetch(`http://127.0.0.1:8000/reports/index?class_std=${classStd}&division=${division}`);
+      const resStudents = await fetch(`${API_BASE}/reports/index?class_std=${classStd}&division=${division}`);
       const dataStudents = await resStudents.json();    
       // 2. Fetch marks for the exam (even if it returns everyone)
-      const resMarks = await fetch(`http://127.0.0.1:8000/exams/${exam.id}/results`);
+      const resMarks = await fetch(`${API_BASE}/exams/${exam.id}/results`);
       const dataMarks = await resMarks.json();
       if (resStudents.ok && resMarks.ok) {
         // Flatten the student list (Boys + Girls)
@@ -295,7 +296,7 @@ const submitMarksheet = async () => {
     }));
     
     try {
-      const res = await fetch("http://127.0.0.1:8000/marks", {
+      const res = await fetch(`${API_BASE}/marks`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ exam_id: selectedExam.id, records: records })
       });
@@ -326,7 +327,7 @@ const submitMarksheet = async () => {
     if (!confirmed) return;
 
     try {
-        const res = await fetch(`http://127.0.0.1:8000/exams/${exam.id}`, {
+        const res = await fetch(`${API_BASE}/exams/${exam.id}`, {
             method: "DELETE"
         });
         if (res.ok) {
@@ -350,11 +351,11 @@ const submitMarksheet = async () => {
     setMessage("⏳ Generating Rank List...");
     try {
         // 1. Fetch valid students for this Division (Source of Truth)
-        const resStudents = await fetch(`http://127.0.0.1:8000/reports/index?class_std=${classStd}&division=${division}`);
+        const resStudents = await fetch(`${API_BASE}/reports/index?class_std=${classStd}&division=${division}`);
         const dataStudents = await resStudents.json();
         
         // 2. Fetch the Rank Report (might return everyone)
-        const resRank = await fetch("http://127.0.0.1:8000/reports/overall-rank", {
+        const resRank = await fetch(`${API_BASE}/reports/overall-rank`, {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ class_standard: classStd, division: division, exam_ids: selectedExamIds })
         });

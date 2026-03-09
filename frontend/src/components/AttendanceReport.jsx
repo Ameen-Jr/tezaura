@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import API_BASE from '../config';
 
 function AttendanceReport() {
   const [classStd, setClassStd] = useState("10");
@@ -25,7 +26,7 @@ function AttendanceReport() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`http://127.0.0.1:8000/reports/attendance-monthly?class_std=${classStd}&month=${month}&year=${currentYear}&session=${session}`);
+      const res = await fetch(`${API_BASE}/reports/attendance-monthly?class_std=${classStd}&month=${month}&year=${currentYear}&session=${session}`);
       const result = await res.json();
       
       // Safety Check: Did the server return an error?

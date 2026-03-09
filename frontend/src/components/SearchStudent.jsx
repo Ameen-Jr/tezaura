@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import SafeLottie from './SafeLottie'; // <--- Import the helper
 import coolAnim from './coolAnim.json'; // <--- Import your animation file
-
+import API_BASE from '../config';
 
 function SearchStudent({ onViewProfile }) {
   // --- EXISTING LOGIC (UNTOUCHED) ---
@@ -15,7 +15,7 @@ function SearchStudent({ onViewProfile }) {
 
     try {
       // Sends power_search=true if the toggle is ON
-      const response = await fetch(`http://127.0.0.1:8000/students/search?query=${query}&power_search=${powerMode}`);
+      const response = await fetch(`${API_BASE}/students/search?query=${query}&power_search=${powerMode}`);
       const data = await response.json();
 
       if (response.ok) {
@@ -245,7 +245,7 @@ function SearchStudent({ onViewProfile }) {
               <tr key={student.admission_number} style={{ borderBottom: "1px solid #eee", transition: "background 0.2s" }}>
                 <td style={{ padding: "10px 15px" }}>
                     {student.photo_path ? (
-                        <img src={`http://127.0.0.1:8000/photos/${student.photo_path}`} alt="student" style={{ width: "50px", height: "50px", borderRadius: "50%", objectFit: "cover", border: "2px solid #ddd" }} />
+                        <img src={`${API_BASE}/photos/${student.photo_path}`} alt="student" style={{ width: "50px", height: "50px", borderRadius: "50%", objectFit: "cover", border: "2px solid #ddd" }} />
                     ) : ( <span style={{ fontSize: "30px" }}>👤</span> )}
                 </td>
                 

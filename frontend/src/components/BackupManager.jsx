@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import SafeLottie from './SafeLottie';           
 import backupAnim from './backupAnim.json';
+import API_BASE from '../config';
 
 const BackupManager = () => {
   const [downloading, setDownloading] = useState(false);
@@ -17,7 +18,7 @@ const BackupManager = () => {
   const handleDownload = async () => {
     setDownloading(true);
     try {
-      const response = await fetch('http://127.0.0.1:8000/backup/download');
+      const response = await fetch('${API_BASE}/backup/download');
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -48,7 +49,7 @@ const BackupManager = () => {
     formData.append("file", selectedFile);
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/backup/restore", {
+      const res = await fetch(`${API_BASE}/backup/restore`, {
         method: "POST",
         body: formData,
       });

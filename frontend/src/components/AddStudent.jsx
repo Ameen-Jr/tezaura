@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import API_BASE from '../config';
 
 function AddStudent() {
   const [formData, setFormData] = useState({
@@ -25,7 +26,7 @@ function AddStudent() {
 
   const fetchHistory = async () => {
     try {
-        const res = await fetch("http://127.0.0.1:8000/students/recent-admissions");
+        const res = await fetch(`${API_BASE}/students/recent-admissions`);
         const data = await res.json();
         setRecentAdmissions(data);
     } catch (err) { console.error("History fetch error", err); }
@@ -33,7 +34,7 @@ function AddStudent() {
 
   const fetchNextAdmNo = async () => {
     try {
-        const res = await fetch("http://127.0.0.1:8000/students/next-admission-number");
+        const res = await fetch(`${API_BASE}/students/next-admission-number`);
         const data = await res.json();
         if (data.next_admission_number) {
             setFormData(prev => ({ ...prev, admission_number: data.next_admission_number }));
@@ -44,7 +45,7 @@ function AddStudent() {
   // --- NEW: FETCH ACADEMIC YEAR ---
   const fetchAcademicYear = async () => {
     try {
-        const res = await fetch("http://127.0.0.1:8000/settings/academic-year");
+        const res = await fetch(`${API_BASE}/settings/academic-year`);
         const data = await res.json();
         setAcadYear(data.academic_year);
     } catch (err) { setAcadYear("2025-26"); }
@@ -69,7 +70,7 @@ function AddStudent() {
     if (photo) data.append("photo", photo);
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/students", {
+      const response = await fetch(`${API_BASE}/students`, {
         method: "POST", body: data,
       });
       const result = await response.json();

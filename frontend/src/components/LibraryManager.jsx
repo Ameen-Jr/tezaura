@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import SafeLottie from './SafeLottie';
 import bookAnim from './book.json';
+import API_BASE from '../config';
 
 function LibraryManager() {
   const [activeTab, setActiveTab] = useState("active"); // 'active' or 'issue'
@@ -69,12 +70,12 @@ function LibraryManager() {
   }, []); // <--- Change dependency to empty array [] to run once on mount
 
   const fetchActiveRecords = async () => {
-    const res = await fetch("http://127.0.0.1:8000/library/active");
+    const res = await fetch(`${API_BASE}/library/active`);
     setActiveRecords(await res.json());
   };
 
   const fetchHistory = async () => {
-    const res = await fetch("http://127.0.0.1:8000/library/history");
+    const res = await fetch(`${API_BASE}/library/history`);
     const data = await res.json();
     setHistoryRecords(data);
     calculateStats(data); // <--- Add this line to update stats
@@ -87,7 +88,7 @@ function LibraryManager() {
     setSelectedStudent(null); // Reset selection if typing again
 
     if (val.length > 1) {
-       const res = await fetch(`http://127.0.0.1:8000/students/search?query=${val}`);
+       const res = await fetch(`${API_BASE}/students/search?query=${val}`);
        const data = await res.json();
        setSearchResults(data.results || []);
     } else {
@@ -109,7 +110,7 @@ function LibraryManager() {
     }
 
     try {
-        const res = await fetch("http://127.0.0.1:8000/library/issue", {
+        const res = await fetch(`${API_BASE}/library/issue`, {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ 
                 admission_number: selectedStudent.admission_number, 
@@ -132,7 +133,7 @@ function LibraryManager() {
 
   const confirmReturn = async () => {
     try {
-        const res = await fetch("http://127.0.0.1:8000/library/return", {
+        const res = await fetch(`${API_BASE}/library/return`, {
             method: "PUT", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ record_id: returnModal, return_date: returnDate })
         });

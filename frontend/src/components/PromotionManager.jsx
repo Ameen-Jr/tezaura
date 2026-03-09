@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import SafeLottie from './SafeLottie';
 import astroAnim from './Astronaut.json';
+import API_BASE from '../config';
 
 function PromotionManager() {
   const [step, setStep] = useState(1); // 1: Review, 2: Promote
@@ -22,7 +23,7 @@ function PromotionManager() {
   const fetchStudents = async () => {
     try {
         // Re-using the report endpoint to get a quick list
-        const res = await fetch(`http://127.0.0.1:8000/reports/index?class_std=${reviewClass}`);
+        const res = await fetch(`${API_BASE}/reports/index?class_std=${reviewClass}`);
         const data = await res.json();
         // Combine boys and girls into one flat list
         setStudents([...data.boys, ...data.girls]);
@@ -43,7 +44,7 @@ function PromotionManager() {
 
     setLoading(true);
     try {
-        const res = await fetch("http://127.0.0.1:8000/students/discontinue-batch", {
+        const res = await fetch(`${API_BASE}/students/discontinue-batch`, {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 admission_numbers: selectedAdms,
@@ -68,7 +69,7 @@ function PromotionManager() {
      
      setLoading(true);
      try {
-         const res = await fetch("http://127.0.0.1:8000/promote-year-end", {
+         const res = await fetch(`${API_BASE}/promote-year-end`, {
              method: "POST", headers: { "Content-Type": "application/json" },
              body: JSON.stringify({ graduation_year: gradYear, reset_fees: resetFees })
          });

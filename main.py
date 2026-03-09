@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from starlette.background import BackgroundTask
 from pydantic import BaseModel
 import sqlite3
 import shutil
@@ -9,23 +10,15 @@ import os
 from typing import List
 from datetime import datetime
 
-def check_and_migrate_db():
-    try:
-        # Connect to DB in the same folder
-        conn = sqlite3.connect('classflow.db') 
-        cursor = conn.cursor()
-        
-        # This is where we will check for future updates
-        # e.g., if 'blood_group' not in columns: add it...
-
-        conn.commit()
-        conn.close()
-        print("✅ Database Check/Migration Complete")
-    except Exception as e:
-        print(f"⚠️ Migration Warning: {e}")
-
-# 👇 CALL IT IMMEDIATELY
-check_and_migrate_db()
+# --- DB CONNECTION HELPER ---
+def get_db():
+    conn = sqlite3.connect(
+        "classflow.db",
+        check_same_thread=False,
+        timeout=10
+    )
+    conn.row_factory = sqlite3.Row
+    return conn
 
 app = FastAPI()
 
@@ -205,7 +198,7 @@ def add_student(
             from datetime import date
             admission_date = date.today().isoformat()
 
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             sql = """
             INSERT INTO students (
@@ -233,7 +226,7 @@ def add_student(
 @app.put("/students/{admission_number}")
 def update_student(admission_number: str, student: UpdateStudentSchema):
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             sql = """
             UPDATE students SET
@@ -259,7 +252,7 @@ def update_student(admission_number: str, student: UpdateStudentSchema):
 @app.post("/students/{admission_number}/photo")
 def update_student_photo(admission_number: str, photo: UploadFile = File(...)):
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             cursor.execute("SELECT name FROM students WHERE admission_number = ?", (admission_number,))
             result = cursor.fetchone()
@@ -279,7 +272,7 @@ def update_student_photo(admission_number: str, photo: UploadFile = File(...)):
 @app.get("/students/search")
 def search_students(query: str, power_search: bool = False):
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             
             # --- FIX: Search by Name OR Admission Number ---
@@ -333,7 +326,7 @@ def search_students(query: str, power_search: bool = False):
 @app.post("/fees")
 def add_fee(fee: FeeSchema):
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             cursor.execute("SELECT id, name FROM students WHERE admission_number = ?", (fee.admission_number,))
             student = cursor.fetchone()
@@ -347,7 +340,7 @@ def add_fee(fee: FeeSchema):
 @app.get("/fees/{admission_number}")
 def get_fee_history(admission_number: str):
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             cursor.execute("SELECT id FROM students WHERE admission_number = ?", (admission_number,))
             student = cursor.fetchone()
@@ -360,7 +353,7 @@ def get_fee_history(admission_number: str):
 @app.get("/reports/index")
 def get_class_index(class_std: str, division: str = ""):
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             query = "SELECT id, name, gender, admission_number, school_name FROM students WHERE class_standard = ? AND is_active = 1"
             params = [class_std]
@@ -383,7 +376,7 @@ def get_class_index(class_std: str, division: str = ""):
 def get_pending_fees(class_std: str, month: str, division: str = ""):
     try:
         if month not in ACADEMIC_ORDER: raise HTTPException(status_code=400, detail="Invalid Month")
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             query = "SELECT id, name, admission_number, father_phone FROM students WHERE class_standard = ? AND is_active = 1"
             params = [class_std]
@@ -433,7 +426,7 @@ def get_monthly_attendance_report(class_std: str, month: str, year: str, session
 
         print(f"📊 Generating Report: Class {class_std} | {month_str} | Session: {session}")
 
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             
             # 3. Get Students (Active Only)
@@ -528,7 +521,7 @@ def get_monthly_attendance_report(class_std: str, month: str, year: str, session
 @app.post("/attendance")
 def mark_attendance(data: DailyAttendanceSchema):
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             
             # Delete existing records for THIS Date AND Session
@@ -549,7 +542,7 @@ def mark_attendance(data: DailyAttendanceSchema):
 @app.post("/exams")
 def create_exam(exam: ExamSchema):
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             cursor.execute("""
                 INSERT INTO exams (name, date, class_standard, subject, max_marks) 
@@ -562,7 +555,7 @@ def create_exam(exam: ExamSchema):
 @app.get("/exams")
 def get_exams(class_std: str):
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             cursor.execute("SELECT id, name, date, subject, max_marks FROM exams WHERE class_standard = ? ORDER BY date DESC", (class_std,))
             exams = [{"id": r[0], "name": r[1], "date": r[2], "subject": r[3], "max_marks": r[4]} for r in cursor.fetchall()]
@@ -572,7 +565,7 @@ def get_exams(class_std: str):
 @app.post("/exams/term")
 def create_term_exam(data: TermExamCreateSchema):
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             created_exams = []
 
@@ -601,7 +594,7 @@ def create_term_exam(data: TermExamCreateSchema):
 @app.get("/exams/grouped")
 def get_exams_grouped(class_std: str, division: str = ""):
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
 
             query = """
@@ -638,7 +631,7 @@ def get_exams_grouped(class_std: str, division: str = ""):
 @app.post("/marks/bulk")
 def submit_bulk_marks(data: BulkMarksSubmissionSchema):
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
 
             for record in data.records:
@@ -667,7 +660,7 @@ def submit_bulk_marks(data: BulkMarksSubmissionSchema):
 @app.post("/marks")
 def submit_marks(data: MarksSubmissionSchema):
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             for record in data.records:
                 # Check if mark exists
@@ -685,7 +678,7 @@ def submit_marks(data: MarksSubmissionSchema):
 @app.get("/exams/{exam_id}/results")
 def get_exam_results(exam_id: int):
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             
             # Get Exam Info
@@ -715,7 +708,7 @@ def get_exam_results(exam_id: int):
 @app.get("/students/{admission_number}/exams")
 def get_student_exam_history(admission_number: str):
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             
             cursor.execute("SELECT id FROM students WHERE admission_number = ?", (admission_number,))
@@ -746,7 +739,7 @@ class OverallRankRequest(BaseModel):
 @app.post("/reports/overall-rank")
 def get_overall_rank(data: OverallRankRequest):
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             
             if not data.exam_ids:
@@ -795,7 +788,7 @@ def get_overall_rank(data: OverallRankRequest):
 @app.post("/library/issue")
 def issue_book(data: LibraryIssueSchema):
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             
             # 1. Find Student
@@ -816,7 +809,7 @@ def issue_book(data: LibraryIssueSchema):
 @app.put("/library/return")
 def return_book(data: LibraryReturnSchema):
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             cursor.execute("UPDATE library_records SET return_date = ? WHERE id = ?", (data.return_date, data.record_id))
             connection.commit()
@@ -826,7 +819,7 @@ def return_book(data: LibraryReturnSchema):
 @app.get("/library/active")
 def get_active_library_records():
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             # Fetch records where return_date is NULL (Active Issues)
             query = """
@@ -849,7 +842,7 @@ def get_active_library_records():
 @app.get("/library/history")
 def get_library_history():
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             # Fetch records where return_date is NOT NULL (Returned Books)
             query = """
@@ -874,7 +867,7 @@ def get_library_history():
 @app.post("/students/{admission_number}/discontinue")
 def discontinue_student(admission_number: str, data: DiscontinueSchema):
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             
             # 1. Get Student Info
@@ -903,7 +896,7 @@ def discontinue_student(admission_number: str, data: DiscontinueSchema):
 @app.post("/promote-year-end")
 def promote_students(data: PromotionSchema):
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             
             # 1. Archive Class 10
@@ -935,8 +928,9 @@ def promote_students(data: PromotionSchema):
                 end = int(parts[1]) + 1
                 new_year = f"{start}-{end}"
                 cursor.execute("UPDATE system_settings SET value = ? WHERE key='academic_year'", (new_year,))
-            except:
-                pass # If format is weird, skip update
+            except (ValueError, IndexError) as e:
+                print(f"⚠️ Could not increment academic year: {e}")
+                new_year = current_year # Keep old value if format is unexpected
 
             connection.commit()
             return {"status": "success", "message": f"Promotion Complete! Academic Year advanced to {new_year}."}
@@ -947,7 +941,7 @@ def promote_students(data: PromotionSchema):
 @app.post("/students/discontinue-batch")
 def discontinue_batch(data: BatchDiscontinueSchema):
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             
             count = 0
@@ -977,7 +971,7 @@ def discontinue_batch(data: BatchDiscontinueSchema):
 @app.get("/reports/discontinued-years")
 def get_discontinued_years():
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             # Extract just the Year (YYYY) from date_left (YYYY-MM-DD)
             cursor.execute("SELECT DISTINCT substr(date_left, 1, 4) FROM discontinued_students ORDER BY date_left DESC")
@@ -988,7 +982,7 @@ def get_discontinued_years():
 @app.get("/reports/discontinued-list")
 def get_discontinued_list(year: str):
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             
             # Join discontinued table with main students table to get School Name
@@ -1019,7 +1013,7 @@ def get_discontinued_list(year: str):
 @app.get("/alumni/years")
 def get_alumni_years():
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             cursor.execute("SELECT DISTINCT year_graduated FROM alumni ORDER BY year_graduated DESC")
             years = [row[0] for row in cursor.fetchall()]
@@ -1029,7 +1023,7 @@ def get_alumni_years():
 @app.get("/alumni/list")
 def get_alumni_list(year: str):
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             # UPDATED QUERY: Fetches Class, Division, and School Name
             query = """
@@ -1057,7 +1051,7 @@ def get_alumni_list(year: str):
 @app.get("/students/lookup/{admission_number}")
 def get_student_details_any(admission_number: str):
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             
             # --- UPDATED SQL: Added 'admission_date' to the end ---
@@ -1111,7 +1105,7 @@ def get_student_details_any(admission_number: str):
 @app.get("/attendance/{admission_number}")
 def get_student_attendance(admission_number: str):
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             
             # 1. Get Student ID
@@ -1144,7 +1138,7 @@ def get_student_attendance(admission_number: str):
 @app.get("/students/recent-admissions")
 def get_recent_admissions():
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             # Fetch last 50 students, ordered by newest ID first
             query = """
@@ -1167,7 +1161,7 @@ def get_recent_admissions():
 @app.get("/students/next-admission-number")
 def get_next_admission_number():
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             # We look for the highest numeric admission number
             cursor.execute("SELECT MAX(CAST(admission_number AS INTEGER)) FROM students")
@@ -1186,7 +1180,7 @@ def get_next_admission_number():
 @app.get("/dashboard/stats")
 def get_dashboard_stats():
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             
             # 1. Total Active Students
@@ -1226,7 +1220,7 @@ def get_dashboard_stats():
 @app.get("/settings/academic-year")
 def get_academic_year():
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             cursor.execute("SELECT value FROM system_settings WHERE key='academic_year'")
             result = cursor.fetchone()
@@ -1237,7 +1231,7 @@ def get_academic_year():
 @app.get("/attendance/stats/yearly")
 def get_yearly_attendance_stats():
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             
             # Fetch all attendance records joined with student info
@@ -1309,7 +1303,7 @@ def get_weekly_fee_stats():
     try:
         from datetime import date, timedelta
         
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             
             today = date.today()
@@ -1342,7 +1336,7 @@ def get_weekly_fee_stats():
 @app.post("/students/sslc-result")
 def save_sslc_result(data: SSLCResultSchema):
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             
             # Check if record exists
@@ -1374,7 +1368,7 @@ def save_sslc_result(data: SSLCResultSchema):
 @app.get("/students/{admission_number}/sslc-result")
 def get_sslc_result(admission_number: str):
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
             cursor.execute("""
                 SELECT lang_i, lang_ii, english, hindi, maths, physics, chemistry, biology, social, it 
@@ -1395,24 +1389,19 @@ def get_sslc_result(admission_number: str):
 # --- NEW: FEE STATISTICS ENDPOINT (Fixed Column Name) ---
 @app.get("/stats/monthly-fees")
 def get_monthly_fees():
-    conn = sqlite3.connect('classflow.db') 
-    cursor = conn.cursor()
-    
-    # FIXED QUERY: Uses 'f.student_id' instead of 'f.admission_number'
-    query = """
-        SELECT f.amount, f.date_paid, s.class_standard, s.division 
-        FROM fees f 
-        JOIN students s ON f.student_id = s.id
-    """
-    
     try:
-        cursor.execute(query)
-        results = cursor.fetchall()
+        with get_db() as conn:
+            cursor = conn.cursor()
+            query = """
+                SELECT f.amount, f.date_paid, s.class_standard, s.division 
+                FROM fees f 
+                JOIN students s ON f.student_id = s.id
+            """
+            cursor.execute(query)
+            results = cursor.fetchall()
     except sqlite3.OperationalError as e:
         print("SQL Error:", e)
-        return [] # Return empty list on error to prevent crash
-    finally:
-        conn.close()
+        return []
 
     # 2. Aggregate Data
     agg_data = {}
@@ -1425,7 +1414,8 @@ def get_monthly_fees():
             # Parse date "2025-10-24" -> "Oct"
             d_obj = datetime.strptime(str(date_paid), "%Y-%m-%d")
             month_name = d_obj.strftime("%b") 
-        except:
+        except (ValueError, TypeError) as e:
+            print(f"⚠️ Skipping bad date format '{date_paid}': {e}")
             continue
 
         # Create Class Key (e.g., "10A" or "8")
@@ -1455,130 +1445,134 @@ def get_monthly_fees():
 # --- NEW ENDPOINT: RECENT ACTIVITY FEED (SIMPLE & SMART SORTED) ---
 @app.get("/dashboard/activity")
 async def get_recent_activity():
-    conn = sqlite3.connect('classflow.db') 
-    conn.row_factory = sqlite3.Row 
-    cursor = conn.cursor()
-    
     activities = []
-
     try:
-        # STRATEGY: Fetch "High Priority" items first (Fees, Library).
-        # Since we sort by Date later, items added FIRST will appear ABOVE items added LAST
-        # if they happen on the same day.
+        with get_db() as conn:
+            cursor = conn.cursor()
+            # STRATEGY: Fetch "High Priority" items first (Fees, Library).
+            # Since we sort by Date later, items added FIRST will appear ABOVE items added LAST
+            # if they happen on the same day.
         
-        # 1. FEES (Priority 1)
-        cursor.execute("""
-            SELECT f.amount, f.date_paid, s.name, s.class_standard
-            FROM fees f JOIN students s ON f.student_id = s.id
-            ORDER BY f.id DESC LIMIT 15
-        """)
-        for f in cursor.fetchall():
-            date_str = str(f['date_paid']) if f['date_paid'] else "2024-01-01"
-            activities.append({
-                "type": "fee",
-                "title": "Fee Collected",
-                "message": f"Received ₹{f['amount']} from {f['name']} ({f['class_standard']})",
-                "timestamp": date_str,
-                "sort_date": date_str
-            })
+            # 1. FEES (Priority 1)
+            cursor.execute("""
+                SELECT f.amount, f.date_paid, s.name, s.class_standard
+                FROM fees f JOIN students s ON f.student_id = s.id
+                ORDER BY f.id DESC LIMIT 15
+            """)
+            for f in cursor.fetchall():
+                date_str = str(f['date_paid']) if f['date_paid'] else "2024-01-01"
+                activities.append({
+                    "type": "fee",
+                    "title": "Fee Collected",
+                    "message": f"Received ₹{f['amount']} from {f['name']} ({f['class_standard']})",
+                    "timestamp": date_str,
+                    "sort_date": date_str
+                })
 
-        # 2. LIBRARY ISSUES (Priority 2)
-        cursor.execute("""
-            SELECT l.book_name, l.issue_date, s.name, s.class_standard 
-            FROM library_records l JOIN students s ON l.student_id = s.id
-            ORDER BY l.issue_date DESC LIMIT 15
-        """)
-        for l in cursor.fetchall():
-            activities.append({
-                "type": "library_issue",
-                "title": "Book Issued",
-                "message": f"Issued '{l['book_name']}' to {l['name']} ({l['class_standard']})",
-                "timestamp": l['issue_date'],
-                "sort_date": l['issue_date']
-            })
+            # 2. LIBRARY ISSUES (Priority 2)
+            cursor.execute("""
+                SELECT l.book_name, l.issue_date, s.name, s.class_standard 
+                FROM library_records l JOIN students s ON l.student_id = s.id
+                ORDER BY l.issue_date DESC LIMIT 15
+            """)
+            for l in cursor.fetchall():
+                activities.append({
+                    "type": "library_issue",
+                    "title": "Book Issued",
+                    "message": f"Issued '{l['book_name']}' to {l['name']} ({l['class_standard']})",
+                    "timestamp": l['issue_date'],
+                    "sort_date": l['issue_date']
+                })
 
-        # 3. LIBRARY RETURNS (Priority 3)
-        cursor.execute("""
-            SELECT l.book_name, l.return_date, s.name, s.class_standard 
-            FROM library_records l JOIN students s ON l.student_id = s.id
-            WHERE l.return_date IS NOT NULL
-            ORDER BY l.return_date DESC LIMIT 15
-        """)
-        for l in cursor.fetchall():
-            activities.append({
-                "type": "library_return",
-                "title": "Book Returned",
-                "message": f"{l['name']} returned '{l['book_name']}'",
-                "timestamp": l['return_date'],
-                "sort_date": l['return_date']
-            })
+            # 3. LIBRARY RETURNS (Priority 3)
+            cursor.execute("""
+                SELECT l.book_name, l.return_date, s.name, s.class_standard 
+                FROM library_records l JOIN students s ON l.student_id = s.id
+                WHERE l.return_date IS NOT NULL
+                ORDER BY l.return_date DESC LIMIT 15
+            """)
+            for l in cursor.fetchall():
+                activities.append({
+                    "type": "library_return",
+                    "title": "Book Returned",
+                    "message": f"{l['name']} returned '{l['book_name']}'",
+                    "timestamp": l['return_date'],
+                    "sort_date": l['return_date']
+                })
 
-        # 4. ABSENTEES (Priority 4)
-        cursor.execute("""
-            SELECT s.name, s.class_standard, a.date 
-            FROM attendance a JOIN students s ON a.student_id = s.id
-            WHERE a.status = 'Absent'
-            ORDER BY a.date DESC LIMIT 15
-        """)
-        for a in cursor.fetchall():
-            activities.append({
-                "type": "absent",
-                "title": "Absentee Alert",
-                "message": f"{a['name']} ({a['class_standard']}) was marked Absent",
-                "timestamp": a['date'],
-                "sort_date": a['date']
-            })
+            # 4. ABSENTEES (Priority 4)
+            cursor.execute("""
+                SELECT s.name, s.class_standard, a.date 
+                FROM attendance a JOIN students s ON a.student_id = s.id
+                WHERE a.status = 'Absent'
+                ORDER BY a.date DESC LIMIT 15
+            """)
+            for a in cursor.fetchall():
+                activities.append({
+                    "type": "absent",
+                    "title": "Absentee Alert",
+                    "message": f"{a['name']} ({a['class_standard']}) was marked Absent",
+                    "timestamp": a['date'],
+                    "sort_date": a['date']
+                })
 
-        # 5. EXAMS (Priority 5)
-        cursor.execute("SELECT name, class_standard, date FROM exams ORDER BY date DESC LIMIT 15")
-        for e in cursor.fetchall():
-            activities.append({
-                "type": "exam",
-                "title": "Exam Scheduled",
-                "message": f"'{e['name']}' scheduled for Class {e['class_standard']}",
-                "timestamp": e['date'],
-                "sort_date": e['date']
-            })
+            # 5. EXAMS (Priority 5)
+            cursor.execute("SELECT name, class_standard, date FROM exams ORDER BY date DESC LIMIT 15")
+            for e in cursor.fetchall():
+                activities.append({
+                    "type": "exam",
+                    "title": "Exam Scheduled",
+                    "message": f"'{e['name']}' scheduled for Class {e['class_standard']}",
+                    "timestamp": e['date'],
+                    "sort_date": e['date']
+                })
 
-        # 6. ADMISSIONS (Priority 6 - Last)
-        # We fetch these LAST so they appear at the BOTTOM of the list for any given day.
-        cursor.execute("SELECT name, class_standard, admission_date FROM students ORDER BY id DESC LIMIT 15")
-        for s in cursor.fetchall():
-            date_str = s['admission_date'] if s['admission_date'] else "2024-01-01"
-            # Only use the first 10 chars (YYYY-MM-DD) to be safe
-            clean_date = date_str[:10]
-            activities.append({
-                "type": "admission",
-                "title": "New Admission",
-                "message": f"Registered {s['name']} into Class {s['class_standard']}",
-                "timestamp": clean_date,
-                "sort_date": clean_date
-            })
+            # 6. ADMISSIONS (Priority 6 - Last)
+            # We fetch these LAST so they appear at the BOTTOM of the list for any given day.
+            cursor.execute("SELECT name, class_standard, admission_date FROM students ORDER BY id DESC LIMIT 15")
+            for s in cursor.fetchall():
+                date_str = s['admission_date'] if s['admission_date'] else "2024-01-01"
+                # Only use the first 10 chars (YYYY-MM-DD) to be safe
+                clean_date = date_str[:10]
+                activities.append({
+                    "type": "admission",
+                    "title": "New Admission",
+                    "message": f"Registered {s['name']} into Class {s['class_standard']}",
+                    "timestamp": clean_date,
+                    "sort_date": clean_date
+                })
 
-        # SORT: Newest Date First
-        # Because Python sort is "stable", for the same date, Fees (added first) will stay above Admissions (added last).
-        activities.sort(key=lambda x: str(x['sort_date']), reverse=True)
+            # SORT: Newest Date First
+            # Because Python sort is "stable", for the same date, Fees (added first) will stay above Admissions (added last).
+            activities.sort(key=lambda x: str(x['sort_date']), reverse=True)
 
     except Exception as e:
         print(f"Error: {e}")
-    finally:
-        conn.close()
 
     # Return exactly top 10 items
     return activities[:10]
 
 @app.get("/backup/download")
 async def download_backup():
-    # 1. Define source and backup name
-    original_db = "classflow.db"  # Make sure this matches your actual DB filename
+    original_db = "classflow.db"
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     backup_filename = f"ClassFlow_Backup_{timestamp}.db"
     
-    # 2. Create a copy (so we don't lock the live DB)
     shutil.copy(original_db, backup_filename)
     
-    # 3. Return it as a downloadable file
-    return FileResponse(path=backup_filename, filename=backup_filename, media_type='application/x-sqlite3')
+    def cleanup():
+        try:
+            os.remove(backup_filename)
+            print(f"✅ Temp backup deleted: {backup_filename}")
+        except OSError as e:
+            print(f"⚠️ Could not delete temp backup: {e}")
+    
+    return FileResponse(
+        path=backup_filename,
+        filename=backup_filename,
+        media_type='application/x-sqlite3',
+        background=BackgroundTask(cleanup)
+    )
 
 @app.post("/backup/restore")
 async def restore_backup(file: UploadFile = File(...)):
@@ -1607,7 +1601,7 @@ def check_connection():
 @app.delete("/exams/{exam_id}")
 def delete_exam(exam_id: int):
     try:
-        with sqlite3.connect("classflow.db") as connection:
+        with get_db() as connection:
             cursor = connection.cursor()
 
             # 1. Verify exam exists

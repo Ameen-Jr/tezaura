@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import API_BASE from '../config';
 
 const SessionBadge = () => {
   const [year, setYear] = useState("Loading...");
@@ -7,7 +8,7 @@ const SessionBadge = () => {
     // Fetch the real academic year from your backend
     const fetchYear = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:8000/settings/academic-year");
+        const res = await fetch(`${API_BASE}/settings/academic-year`);
         if (res.ok) {
             const data = await res.json();
             setYear(data.academic_year || "2025-26");

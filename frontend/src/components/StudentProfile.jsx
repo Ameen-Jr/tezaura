@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import API_BASE from '../config';
 
 function StudentProfile({ student, onBack }) {
   const [feeHistory, setFeeHistory] = useState([]);
@@ -46,26 +47,26 @@ function StudentProfile({ student, onBack }) {
       setPhotoPreview(null);
 
       // 1. Fetch Fees
-      fetch(`http://127.0.0.1:8000/fees/${student.admission_number}`)
+      fetch(`${API_BASE}/fees/${student.admission_number}`)
         .then(res => res.json())
         .then(data => setFeeHistory(data))
         .catch(err => console.error(err));
         
       // 2. Fetch Exams
-      fetch(`http://127.0.0.1:8000/students/${student.admission_number}/exams`)
+      fetch(`${API_BASE}/students/${student.admission_number}/exams`)
         .then(res => res.json())
         .then(data => setExamHistory(data))
         .catch(err => console.error(err));
 
       // 3. Fetch Attendance
-      fetch(`http://127.0.0.1:8000/attendance/${student.admission_number}`)
+      fetch(`${API_BASE}/attendance/${student.admission_number}`)
         .then(res => res.ok ? res.json() : { percentage: 0, present_days: 0, total_days: 0 })
         .then(data => setAttendanceStats(data))
         .catch(() => setAttendanceStats({ percentage: 0, present_days: 0, total_days: 0 }));
 
       // 4. Fetch SSLC Result
       if (student.class_standard === "10") {
-          fetch(`http://127.0.0.1:8000/students/${student.admission_number}/sslc-result`)
+          fetch(`${API_BASE}/students/${student.admission_number}/sslc-result`)
             .then(res => res.json())
             .then(data => {
                 if (data.lang_i) {
@@ -77,7 +78,7 @@ function StudentProfile({ student, onBack }) {
       }
 
       // 5. NEW: Fetch Full Profile Status (Check if Discontinued)
-      fetch(`http://127.0.0.1:8000/students/lookup/${student.admission_number}`)
+      fetch(`${API_BASE}/students/lookup/${student.admission_number}`)
         .then(res => res.json())
         .then(data => {
             // Merge the status/reason into our display data
@@ -120,7 +121,7 @@ function StudentProfile({ student, onBack }) {
   const saveSslcResult = async () => {
       try {
           const payload = { ...sslcData, admission_number: student.admission_number };
-          const res = await fetch("http://127.0.0.1:8000/students/sslc-result", {
+          const res = await fetch(`${API_BASE}/students/sslc-result`, {
               method: "POST", headers: { "Content-Type": "application/json" },
               body: JSON.stringify(payload)
           });
@@ -147,14 +148,14 @@ function StudentProfile({ student, onBack }) {
       if (newPhotoFile) {
           const photoData = new FormData();
           photoData.append("photo", newPhotoFile);
-          const photoResponse = await fetch(`http://127.0.0.1:8000/students/${student.admission_number}/photo`, {
+          const photoResponse = await fetch(`${API_BASE}/students/${student.admission_number}/photo`, {
               method: "POST", body: photoData,
           });
           if (!photoResponse.ok) throw new Error("Photo upload failed");
           const photoResult = await photoResponse.json();
           student.photo_path = photoResult.new_path; 
       }
-      const response = await fetch(`http://127.0.0.1:8000/students/${student.admission_number}`, {
+      const response = await fetch(`${API_BASE}/students/${student.admission_number}`, {
         method: "PUT", headers: { "Content-Type": "application/json" },
         body: JSON.stringify(editData),
       });
@@ -171,7 +172,7 @@ function StudentProfile({ student, onBack }) {
   const handleDiscontinue = async () => {
     if (!discontinueReason) return alert("Please enter a reason.");
     try {
-        const res = await fetch(`http://127.0.0.1:8000/students/${student.admission_number}/discontinue`, {
+        const res = await fetch(`${API_BASE}/students/${student.admission_number}/discontinue`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ reason: discontinueReason, date_left: new Date().toISOString().split('T')[0] })
@@ -186,7 +187,7 @@ function StudentProfile({ student, onBack }) {
   };
 
   const inputStyle = { padding: "5px", width: "95%", borderRadius: "4px", border: "1px solid #ccc", marginBottom: "5px" };
-  let imageSrc = photoPreview || (student.photo_path ? `http://127.0.0.1:8000/photos/${student.photo_path}?t=${new Date().getTime()}` : null);
+  let imageSrc = photoPreview || (student.photo_path ? `${API_BASE}/photos/${student.photo_path}?t=${new Date().getTime()}` : null);
 
   return (
     <div style={{ maxWidth: "900px", margin: "0 auto", padding: "20px", fontFamily: "sans-serif" }}>

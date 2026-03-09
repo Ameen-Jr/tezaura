@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import SafeLottie from './SafeLottie'; 
 import feeAnim from './feeAnim.json';
 import FeeGraph from './FeeGraph';
+import API_BASE from '../config';
 
 function FeeCollection() {
   const [view, setView] = useState("search");
@@ -26,7 +27,7 @@ function FeeCollection() {
     const val = e.target.value;
     setQuery(val);
     if (val.length > 1) {
-      const res = await fetch(`http://127.0.0.1:8000/students/search?query=${val}`);
+      const res = await fetch(`${API_BASE}/students/search?query=${val}`);
       const data = await res.json();
       setSearchResults(data.results || []);
     } else {
@@ -44,7 +45,7 @@ function FeeCollection() {
 
   const fetchFeeStatus = async (admNo) => {
     try {
-      const res = await fetch(`http://127.0.0.1:8000/fees/${admNo}`);
+      const res = await fetch(`${API_BASE}/fees/${admNo}`);
       const data = await res.json();
       setFeeHistory(data);
     } catch (err) { console.error(err); }
@@ -90,7 +91,7 @@ function FeeCollection() {
     };
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/fees", {
+      const res = await fetch(`${API_BASE}/fees`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
