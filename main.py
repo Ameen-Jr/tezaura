@@ -159,6 +159,101 @@ MONTH_MAP = {
 
 # --- API ENDPOINTS ---
 
+@app.get("/students/search")
+def search_students(query: str, power_search: bool = False):
+    try:
+        with get_db() as connection:
+            cursor = connection.cursor()
+            
+            # --- FIX: Search by Name OR Admission Number ---
+            # LOGIC: If power_search is True, show ALL. If False, show only Active.
+            status_filter = "" if power_search else "AND is_active = 1"
+
+            sql_query = f"""
+            SELECT 
+                admission_number, name, class_standard, division, gender, address, school_name, dob,
+                father_name, father_occupation, father_phone, 
+                mother_name, mother_occupation, mother_phone, 
+                whatsapp_number, bus_stop, panchayat, remarks, photo_path, sslc_number
+            FROM students 
+            WHERE (name LIKE ? OR admission_number LIKE ?) {status_filter}
+            """
+            
+            # Pass the query string twice (once for name, once for adm no)
+            search_param = f"%{query}%"
+            cursor.execute(sql_query, (search_param, search_param))
+            
+            results = cursor.fetchall()
+            
+            students_found = []
+            for row in results:
+                students_found.append({
+                    "admission_number": row[0],
+                    "name": row[1],
+                    "class_standard": row[2],
+                    "division": row[3],
+                    "gender": row[4],
+                    "address": row[5],
+                    "school_name": row[6],
+                    "dob": row[7],
+                    "father_name": row[8],
+                    "father_occupation": row[9],
+                    "father_phone": row[10],
+                    "mother_name": row[11],
+                    "mother_occupation": row[12],
+                    "mother_phone": row[13],
+                    "whatsapp_number": row[14],
+                    "bus_stop": row[15],
+                    "panchayat": row[16],
+                    "remarks": row[17],
+                    "photo_path": row[18],
+                    "sslc_number": row[19]
+                })
+            return {"count": len(students_found), "results": students_found}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# --- ADMISSION HISTORY ---
+@app.get("/students/recent-admissions")
+def get_recent_admissions():
+    try:
+        with get_db() as connection:
+            cursor = connection.cursor()
+            # Fetch last 50 students, ordered by newest ID first
+            query = """
+                SELECT admission_number, name, class_standard, division, school_name, admission_date 
+                FROM students 
+                WHERE is_active = 1 
+                ORDER BY id DESC LIMIT 50
+            """
+            cursor.execute(query)
+            history = []
+            for row in cursor.fetchall():
+                history.append({
+                    "adm": row[0], "name": row[1], "class": row[2], 
+                    "div": row[3], "school": row[4], "date": row[5]
+                })
+            return history
+    except Exception as e: raise HTTPException(status_code=500, detail=str(e))
+
+# --- GET NEXT ADMISSION NUMBER ---
+@app.get("/students/next-admission-number")
+def get_next_admission_number():
+    try:
+        with get_db() as connection:
+            cursor = connection.cursor()
+            # We look for the highest numeric admission number
+            cursor.execute("SELECT MAX(CAST(admission_number AS INTEGER)) FROM students")
+            result = cursor.fetchone()
+            max_val = result[0]
+            
+            # If database is empty, start at 1. Otherwise, increment by 1.
+            next_val = 1 if max_val is None else max_val + 1
+            return {"next_admission_number": str(next_val)}
+    except Exception as e:
+        # If something goes wrong (e.g. alphanumeric numbers), return empty to let user type
+        return {"next_admission_number": ""}
+
 @app.post("/students")
 def add_student(
     admission_number: str = Form(...),
@@ -269,60 +364,6 @@ def update_student_photo(admission_number: str, photo: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/students/search")
-def search_students(query: str, power_search: bool = False):
-    try:
-        with get_db() as connection:
-            cursor = connection.cursor()
-            
-            # --- FIX: Search by Name OR Admission Number ---
-            # LOGIC: If power_search is True, show ALL. If False, show only Active.
-            status_filter = "" if power_search else "AND is_active = 1"
-
-            sql_query = f"""
-            SELECT 
-                admission_number, name, class_standard, division, gender, address, school_name, dob,
-                father_name, father_occupation, father_phone, 
-                mother_name, mother_occupation, mother_phone, 
-                whatsapp_number, bus_stop, panchayat, remarks, photo_path, sslc_number
-            FROM students 
-            WHERE (name LIKE ? OR admission_number LIKE ?) {status_filter}
-            """
-            
-            # Pass the query string twice (once for name, once for adm no)
-            search_param = f"%{query}%"
-            cursor.execute(sql_query, (search_param, search_param))
-            
-            results = cursor.fetchall()
-            
-            students_found = []
-            for row in results:
-                students_found.append({
-                    "admission_number": row[0],
-                    "name": row[1],
-                    "class_standard": row[2],
-                    "division": row[3],
-                    "gender": row[4],
-                    "address": row[5],
-                    "school_name": row[6],
-                    "dob": row[7],
-                    "father_name": row[8],
-                    "father_occupation": row[9],
-                    "father_phone": row[10],
-                    "mother_name": row[11],
-                    "mother_occupation": row[12],
-                    "mother_phone": row[13],
-                    "whatsapp_number": row[14],
-                    "bus_stop": row[15],
-                    "panchayat": row[16],
-                    "remarks": row[17],
-                    "photo_path": row[18],
-                    "sslc_number": row[19]
-                })
-            return {"count": len(students_found), "results": students_found}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
 @app.post("/fees")
 def add_fee(fee: FeeSchema):
     try:
@@ -421,7 +462,7 @@ def get_monthly_attendance_report(class_std: str, month: str, year: str, session
             from datetime import datetime
             m_int = datetime.strptime(month, "%B").month
             month_str = f"{year}-{m_int:02d}"
-        except:
+        except ValueError:
             month_str = f"{year}-01"
 
         print(f"📊 Generating Report: Class {class_std} | {month_str} | Session: {session}")
@@ -1102,130 +1143,6 @@ def get_student_details_any(admission_number: str):
 
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/attendance/{admission_number}")
-def get_student_attendance(admission_number: str):
-    try:
-        with get_db() as connection:
-            cursor = connection.cursor()
-            
-            # 1. Get Student ID
-            cursor.execute("SELECT id FROM students WHERE admission_number = ?", (admission_number,))
-            student = cursor.fetchone()
-            if not student: raise HTTPException(status_code=404, detail="Student not found")
-            
-            student_id = student[0]
-            
-            # 2. Count Total Days & Present Days
-            cursor.execute("SELECT count(*) FROM attendance WHERE student_id = ?", (student_id,))
-            total_days = cursor.fetchone()[0]
-            
-            cursor.execute("SELECT count(*) FROM attendance WHERE student_id = ? AND status = 'Present'", (student_id,))
-            present_days = cursor.fetchone()[0]
-            
-            percentage = 0
-            if total_days > 0:
-                percentage = round((present_days / total_days) * 100, 1)
-                
-            return {
-                "total_days": total_days,
-                "present_days": present_days,
-                "percentage": percentage
-            }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-# --- ADMISSION HISTORY ---
-@app.get("/students/recent-admissions")
-def get_recent_admissions():
-    try:
-        with get_db() as connection:
-            cursor = connection.cursor()
-            # Fetch last 50 students, ordered by newest ID first
-            query = """
-                SELECT admission_number, name, class_standard, division, school_name, admission_date 
-                FROM students 
-                WHERE is_active = 1 
-                ORDER BY id DESC LIMIT 50
-            """
-            cursor.execute(query)
-            history = []
-            for row in cursor.fetchall():
-                history.append({
-                    "adm": row[0], "name": row[1], "class": row[2], 
-                    "div": row[3], "school": row[4], "date": row[5]
-                })
-            return history
-    except Exception as e: raise HTTPException(status_code=500, detail=str(e))
-
-# --- GET NEXT ADMISSION NUMBER ---
-@app.get("/students/next-admission-number")
-def get_next_admission_number():
-    try:
-        with get_db() as connection:
-            cursor = connection.cursor()
-            # We look for the highest numeric admission number
-            cursor.execute("SELECT MAX(CAST(admission_number AS INTEGER)) FROM students")
-            result = cursor.fetchone()
-            max_val = result[0]
-            
-            # If database is empty, start at 1. Otherwise, increment by 1.
-            next_val = 1 if max_val is None else max_val + 1
-            return {"next_admission_number": str(next_val)}
-    except Exception as e:
-        # If something goes wrong (e.g. alphanumeric numbers), return empty to let user type
-        return {"next_admission_number": ""}
-
-# --- DASHBOARD STATS ---
-# --- DASHBOARD STATS (UPDATED) ---
-@app.get("/dashboard/stats")
-def get_dashboard_stats():
-    try:
-        with get_db() as connection:
-            cursor = connection.cursor()
-            
-            # 1. Total Active Students
-            cursor.execute("SELECT COUNT(*) FROM students WHERE is_active = 1")
-            student_count = cursor.fetchone()[0]
-
-            # 2. Gender Breakdown per Class
-            # Returns rows like: ('10', 'Male', 15), ('10', 'Female', 12)
-            cursor.execute("""
-                SELECT class_standard, gender, COUNT(*) 
-                FROM students 
-                WHERE is_active = 1 
-                GROUP BY class_standard, gender
-                ORDER BY class_standard
-            """)
-            rows = cursor.fetchall()
-            
-            # Organize data: {"10": {"Male": 15, "Female": 12}, "9": ...}
-            demographics = {}
-            for r in rows:
-                cls, gender, count = r
-                if cls not in demographics: demographics[cls] = {"Male": 0, "Female": 0}
-                demographics[cls][gender] = count
-
-            # 3. Library Active Count (Keep this if you want, or just ignore)
-            cursor.execute("SELECT COUNT(*) FROM library_records WHERE return_date IS NULL")
-            lib_count = cursor.fetchone()[0]
-            
-            return {
-                "students": student_count, 
-                "demographics": demographics,
-                "library": lib_count
-            }
-    except Exception as e: 
-        return {"students": 0, "demographics": {}, "library": 0}
-
-@app.get("/settings/academic-year")
-def get_academic_year():
-    try:
-        with get_db() as connection:
-            cursor = connection.cursor()
-            cursor.execute("SELECT value FROM system_settings WHERE key='academic_year'")
-            result = cursor.fetchone()
-            return {"academic_year": result[0] if result else "2025-26"}
-    except Exception as e: return {"academic_year": "2025-26"}
 
 # --- ATTENDANCE GRAPH STATS ---
 @app.get("/attendance/stats/yearly")
@@ -1258,7 +1175,9 @@ def get_yearly_attendance_stats():
             }
             
             for r in rows:
-                cls, date_str, status = r
+                cls = r["class_standard"]
+                date_str = r["date"]
+                status = r["status"]
                 if cls not in stats: continue
                 
                 try:
@@ -1269,7 +1188,7 @@ def get_yearly_attendance_stats():
                         stats[cls][idx]["t"] += 1
                         if status == "Present":
                             stats[cls][idx]["p"] += 1
-                except: continue
+                except (ValueError, IndexError): continue
 
             # Format for Chart.js
             datasets = []
@@ -1296,6 +1215,92 @@ def get_yearly_attendance_stats():
             return datasets
             
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/attendance/{admission_number}")
+def get_student_attendance(admission_number: str):
+    try:
+        with get_db() as connection:
+            cursor = connection.cursor()
+            
+            # 1. Get Student ID
+            cursor.execute("SELECT id FROM students WHERE admission_number = ?", (admission_number,))
+            student = cursor.fetchone()
+            if not student: raise HTTPException(status_code=404, detail="Student not found")
+            
+            student_id = student[0]
+            
+            # 2. Count Total Days & Present Days
+            cursor.execute("SELECT count(*) FROM attendance WHERE student_id = ?", (student_id,))
+            total_days = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT count(*) FROM attendance WHERE student_id = ? AND status = 'Present'", (student_id,))
+            present_days = cursor.fetchone()[0]
+            
+            percentage = 0
+            if total_days > 0:
+                percentage = round((present_days / total_days) * 100, 1)
+                
+            return {
+                "total_days": total_days,
+                "present_days": present_days,
+                "percentage": percentage
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# --- DASHBOARD STATS ---
+# --- DASHBOARD STATS (UPDATED) ---
+@app.get("/dashboard/stats")
+def get_dashboard_stats():
+    try:
+        with get_db() as connection:
+            cursor = connection.cursor()
+            
+            # 1. Total Active Students
+            cursor.execute("SELECT COUNT(*) FROM students WHERE is_active = 1")
+            student_count = cursor.fetchone()[0]
+
+            # 2. Gender Breakdown per Class
+            # Returns rows like: ('10', 'Male', 15), ('10', 'Female', 12)
+            cursor.execute("""
+                SELECT class_standard, gender, COUNT(*) 
+                FROM students 
+                WHERE is_active = 1 
+                GROUP BY class_standard, gender
+                ORDER BY class_standard
+            """)
+            rows = cursor.fetchall()
+            
+            # Organize data: {"10": {"Male": 15, "Female": 12}, "9": ...}
+            demographics = {}
+            for r in rows:
+                cls = r["class_standard"]
+                gender = r["gender"]
+                count = r[2]  # COUNT(*) has no column name, use index
+                if cls not in demographics: demographics[cls] = {"Male": 0, "Female": 0}
+                demographics[cls][gender] = count
+
+            # 3. Library Active Count (Keep this if you want, or just ignore)
+            cursor.execute("SELECT COUNT(*) FROM library_records WHERE return_date IS NULL")
+            lib_count = cursor.fetchone()[0]
+            
+            return {
+                "students": student_count, 
+                "demographics": demographics,
+                "library": lib_count
+            }
+    except Exception as e: 
+        return {"students": 0, "demographics": {}, "library": 0}
+
+@app.get("/settings/academic-year")
+def get_academic_year():
+    try:
+        with get_db() as connection:
+            cursor = connection.cursor()
+            cursor.execute("SELECT value FROM system_settings WHERE key='academic_year'")
+            result = cursor.fetchone()
+            return {"academic_year": result[0] if result else "2025-26"}
+    except Exception as e: return {"academic_year": "2025-26"}
 
 # --- WEEKLY FEE STATS ---
 @app.get("/fees/stats/weekly")
@@ -1389,6 +1394,7 @@ def get_sslc_result(admission_number: str):
 # --- NEW: FEE STATISTICS ENDPOINT (Fixed Column Name) ---
 @app.get("/stats/monthly-fees")
 def get_monthly_fees():
+    results = []
     try:
         with get_db() as conn:
             cursor = conn.cursor()
@@ -1406,7 +1412,11 @@ def get_monthly_fees():
     # 2. Aggregate Data
     agg_data = {}
     
-    for amount, date_paid, class_std, division in results:
+    for row in results:
+        amount = row["amount"]
+        date_paid = row["date_paid"]
+        class_std = row["class_standard"]
+        division = row["division"]
         if not date_paid or not amount:
             continue
             
