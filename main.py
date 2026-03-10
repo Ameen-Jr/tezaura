@@ -652,20 +652,21 @@ def get_exams_grouped(class_std: str, division: str = ""):
             cursor.execute(query, tuple(params))
             rows = cursor.fetchall()
 
-            # Group by exam name
+            # Group by exam name + date (prevents collision if same name used across years)
             grouped = {}
             for row in rows:
                 exam_id, name, date, subject, max_marks, sort_order = row
-                if name not in grouped:
-                    grouped[name] = {"name": name, "date": date, "subjects": []}
-                grouped[name]["subjects"].append({
+                group_key = f"{name}||{date}"
+                if group_key not in grouped:
+                    grouped[group_key] = {"name": name, "date": date, "subjects": []}
+                grouped[group_key]["subjects"].append({
                     "exam_id": exam_id,
                     "subject": subject,
                     "max_marks": max_marks,
                     "sort_order": sort_order or 0
                 })
 
-            return list(grouped.values())
+                return list(grouped.values())
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -941,20 +942,23 @@ def promote_students(data: PromotionSchema):
             cursor = connection.cursor()
             
             # 1. Archive Class 10
-            cursor.execute("SELECT admission_number, name, father_phone, address, photo_path FROM students WHERE class_standard = '10' AND is_active = 1")
+            cursor.execute("SELECT admission_number, name, father_phone, address, photo_path, division, school_name FROM students WHERE class_standard = '10' AND is_active = 1")
             graduates = cursor.fetchall()
             for grad in graduates:
                 try:
                     cursor.execute("""
-                        INSERT INTO alumni (admission_number, name, last_class, year_graduated, phone, address, photo_path)
-                        VALUES (?, ?, '10', ?, ?, ?, ?)
-                    """, (grad[0], grad[1], data.graduation_year, grad[2], grad[3], grad[4]))
+                        INSERT INTO alumni (admission_number, name, last_class, division, school_name, year_graduated, phone, address, photo_path)
+                        VALUES (?, ?, '10', ?, ?, ?, ?, ?, ?)
+                    """, (grad[0], grad[1], grad[5], grad[6], data.graduation_year, grad[2], grad[3], grad[4]))
                 except sqlite3.IntegrityError: pass
             
-            # 2. Promote Classes
-            cursor.execute("UPDATE students SET is_active = 0 WHERE class_standard = '10'")
-            cursor.execute("UPDATE students SET class_standard = '10' WHERE class_standard = '9' AND is_active = 1")
+            # 2. Promote Classes (Order is critical: must go top-down to avoid chain promotion)
+            # Step A: Class 8 → 9 first (so they don't get caught by the 9→10 update below)
             cursor.execute("UPDATE students SET class_standard = '9' WHERE class_standard = '8' AND is_active = 1")
+            # Step B: Class 9 → 10 (original 9s only, 8s already moved to 9 above but is_active check is safe)
+            cursor.execute("UPDATE students SET class_standard = '10' WHERE class_standard = '9' AND is_active = 1")
+            # Step C: Deactivate graduating Class 10 (must be AFTER 9→10 move)
+            cursor.execute("UPDATE students SET is_active = 0 WHERE class_standard = '10'")
             
             if data.reset_fees: cursor.execute("DELETE FROM fees")
 
@@ -963,11 +967,14 @@ def promote_students(data: PromotionSchema):
             current_year = cursor.fetchone()[0] # e.g., "2025-26"
             
             try:
-                # Logic: Split "2025-26" -> 2025, 26 -> Add 1 -> "2026-27"
+                # Logic: Always produce "YYYY-YY" format e.g. "2025-26" -> "2026-27"
                 parts = current_year.split("-")
                 start = int(parts[0]) + 1
-                end = int(parts[1]) + 1
-                new_year = f"{start}-{end}"
+                end_str = parts[1].strip()
+                # Normalize: whether stored as "26" or "2026", always write back as 2-digit
+                end_full = int(end_str) + 1
+                end_2digit = end_full % 100  # 2027 -> 27, 100 -> 0 (century-safe)
+                new_year = f"{start}-{end_2digit:02d}"
                 cursor.execute("UPDATE system_settings SET value = ? WHERE key='academic_year'", (new_year,))
             except (ValueError, IndexError) as e:
                 print(f"⚠️ Could not increment academic year: {e}")
@@ -1068,9 +1075,8 @@ def get_alumni_list(year: str):
             cursor = connection.cursor()
             # UPDATED QUERY: Fetches Class, Division, and School Name
             query = """
-                SELECT a.name, a.admission_number, a.last_class, s.division, s.school_name
+                SELECT a.name, a.admission_number, a.last_class, a.division, a.school_name
                 FROM alumni a
-                LEFT JOIN students s ON a.admission_number = s.admission_number
                 WHERE a.year_graduated = ?
                 ORDER BY a.name ASC
             """
@@ -1229,11 +1235,11 @@ def get_student_attendance(admission_number: str):
             
             student_id = student[0]
             
-            # 2. Count Total Days & Present Days
-            cursor.execute("SELECT count(*) FROM attendance WHERE student_id = ?", (student_id,))
+            # 2. Count Total Days & Present Days (Deduplicated by Date)
+            cursor.execute("SELECT COUNT(DISTINCT date) FROM attendance WHERE student_id = ?", (student_id,))
             total_days = cursor.fetchone()[0]
-            
-            cursor.execute("SELECT count(*) FROM attendance WHERE student_id = ? AND status = 'Present'", (student_id,))
+
+            cursor.execute("SELECT COUNT(DISTINCT date) FROM attendance WHERE student_id = ? AND status = 'Present' AND session = 'Day'", (student_id,))
             present_days = cursor.fetchone()[0]
             
             percentage = 0
@@ -1623,7 +1629,10 @@ def delete_exam(exam_id: int):
             # 2. Delete all marks for this exam first (preserve referential integrity)
             cursor.execute("DELETE FROM marks WHERE exam_id = ?", (exam_id,))
 
-            # 3. Now safely delete the exam itself
+            # 3. Delete the subject metadata row
+            cursor.execute("DELETE FROM exam_subjects WHERE exam_id = ?", (exam_id,))
+
+            # 4. Now safely delete the exam itself
             cursor.execute("DELETE FROM exams WHERE id = ?", (exam_id,))
 
             connection.commit()

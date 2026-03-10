@@ -127,6 +127,8 @@ CREATE TABLE IF NOT EXISTS alumni (
     admission_number TEXT UNIQUE,
     name TEXT,
     last_class TEXT,
+    division TEXT,
+    school_name TEXT,
     year_graduated TEXT,
     phone TEXT,
     address TEXT,

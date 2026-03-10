@@ -52,9 +52,9 @@ function FeeCollection() {
   };
 
   const getTargetAmount = (item) => {
-    if (item === "Admission Fee") return 0; 
+    if (item === "Admission Fee") return null;
     return selectedStudent.class_standard === "10" ? 600 : 550;
-  };
+    };
 
   const getPaidAmount = (item) => {
     const relevantFees = feeHistory.filter(record => record.month_year.includes(item));
@@ -66,7 +66,7 @@ function FeeCollection() {
     const target = getTargetAmount(item);
     const paid = getPaidAmount(item);
     
-    if (item !== "Admission Fee" && paid >= target) return;
+    if (target !== null && paid >= target) return;
 
     const fullItemString = item === "Admission Fee" ? `Admission Fee ${currentYear}` : `${item} ${currentYear}`;
     

@@ -55,7 +55,10 @@ function AttendanceSheet() {
           return { ...s, status: currentStatus };
       });
       setStudents(merged);
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      setMessage("❌ Could not load students. Please check that the server is running.");
+    }
     setLoading(false);
   };
 

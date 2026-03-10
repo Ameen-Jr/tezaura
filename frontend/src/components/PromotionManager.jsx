@@ -124,6 +124,7 @@ function PromotionManager() {
                 <select value={reviewClass} onChange={(e) => setReviewClass(e.target.value)} style={{ padding: "8px" }}>
                     <option value="8">Class 8</option>
                     <option value="9">Class 9</option>
+                    <option value="10">Class 10</option>
                 </select>
                 <button onClick={fetchStudents} style={{ padding: "8px", cursor: "pointer" }}>Refresh</button>
             </div>
@@ -171,6 +172,11 @@ function PromotionManager() {
                         <input type="checkbox" checked={resetFees} onChange={e => setResetFees(e.target.checked)} />
                         <span>🗑️ Reset Fee Records for new year?</span>
                     </label>
+                    {resetFees && (
+                        <div style={{ marginTop: "8px", padding: "10px 14px", backgroundColor: "#FEF2F2", border: "1px solid #FCA5A5", borderRadius: "6px", fontSize: "13px", color: "#B91C1C" }}>
+                            ⚠️ <strong>Warning:</strong> This will permanently delete <strong>all fee records</strong> for every student. This cannot be undone. Only check this if you want a clean slate for the new academic year.
+                        </div>
+                    )}
                 </div>
             </div>
 
