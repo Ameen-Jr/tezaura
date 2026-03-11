@@ -153,7 +153,7 @@ function StudentProfile({ student, onBack }) {
           });
           if (!photoResponse.ok) throw new Error("Photo upload failed");
           const photoResult = await photoResponse.json();
-          student.photo_path = photoResult.new_path; 
+          setEditData(prev => ({ ...prev, photo_path: photoResult.new_path })); 
       }
       const response = await fetch(`${API_BASE}/students/${student.admission_number}`, {
         method: "PUT", headers: { "Content-Type": "application/json" },
@@ -347,7 +347,7 @@ function StudentProfile({ student, onBack }) {
       </div>
 
       {/* --- SSLC RESULT SECTION --- */}
-      {editData.class_standard === "10" && editData.sslc_number && (
+      {editData.class_standard === "10" && (
           <div className="card-glass" style={{ marginTop: "20px", padding: "20px", border: "2px solid #F1C40F" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid #F1C40F", paddingBottom: "10px", marginBottom: "15px" }}>
                   <h3 style={{ margin: 0, color: "#D35400" }}>🏆 SSLC Examination Results</h3>

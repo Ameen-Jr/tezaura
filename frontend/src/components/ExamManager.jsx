@@ -197,10 +197,11 @@ const submitMarksheet = async () => {
         // Collect all exam_ids from selected term exam names
         const examIdsToDelete = [];
         groupedExams.forEach(termExam => {
-            if (selectedTermExams.includes(termExam.name)) {
-                termExam.subjects.forEach(s => examIdsToDelete.push(s.exam_id));
-            }
-        });
+    const key = `${termExam.name}||${termExam.date}`;
+    if (selectedTermExams.includes(key)) {
+        termExam.subjects.forEach(s => examIdsToDelete.push(s.exam_id));
+    }
+    });
 
         // Delete each exam_id (existing DELETE endpoint handles marks cleanup)
         await Promise.all(examIdsToDelete.map(id =>
@@ -216,9 +217,9 @@ const submitMarksheet = async () => {
     }
     };
 
-    const toggleTermExamSelection = (name) => {
+    const toggleTermExamSelection = (key) => {
     setSelectedTermExams(prev =>
-        prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]
+        prev.includes(key) ? prev.filter(n => n !== key) : [...prev, key]
     );
     };
 
@@ -454,9 +455,10 @@ const submitMarksheet = async () => {
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
             {groupedExams.map((termExam, index) => {
-                const isSelected = selectedTermExams.includes(termExam.name);
+                const termKey = `${termExam.name}||${termExam.date}`;
+                const isSelected = selectedTermExams.includes(termKey);
                 return (
-                    <div key={index} className="card-glass" onClick={() => isSelectMode && toggleTermExamSelection(termExam.name)}
+                    <div key={index} className="card-glass" onClick={() => isSelectMode && toggleTermExamSelection(termKey)}
                         style={{ padding: "20px", borderLeft: `5px solid ${isSelected ? "#e74c3c" : "#8e44ad"}`, outline: isSelected ? "2px solid #e74c3c" : "none", cursor: isSelectMode ? "pointer" : "default", backgroundColor: isSelected ? "#fff5f5" : "white", transition: "all 0.15s ease" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                             <h3 style={{ margin: "0 0 5px 0", color: "#2c3e50" }}>{termExam.name}</h3>

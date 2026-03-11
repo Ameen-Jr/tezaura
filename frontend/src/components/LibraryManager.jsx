@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import SafeLottie from './SafeLottie';
 import bookAnim from './book.json';
 import API_BASE from '../config';

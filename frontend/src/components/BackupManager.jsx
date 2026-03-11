@@ -18,7 +18,7 @@ const BackupManager = () => {
   const handleDownload = async () => {
     setDownloading(true);
     try {
-      const response = await fetch('${API_BASE}/backup/download');
+      const response = await fetch(`${API_BASE}/backup/download`);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');

@@ -16,7 +16,7 @@ function AttendanceReport() {
     "April", "May", "June", "July", "August", "September", 
     "October", "November", "December", "January", "February", "March"
   ];
-  const currentYear = new Date().getFullYear();
+  const [year, setYear] = useState(new Date().getFullYear().toString());
 
   useEffect(() => {
     fetchReport();
@@ -26,7 +26,7 @@ function AttendanceReport() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/reports/attendance-monthly?class_std=${classStd}&month=${month}&year=${currentYear}&session=${session}`);
+      const res = await fetch(`${API_BASE}/reports/attendance-monthly?class_std=${classStd}&month=${month}&year=${year}&session=${session}`);
       const result = await res.json();
       
       // Safety Check: Did the server return an error?
@@ -60,7 +60,12 @@ function AttendanceReport() {
         </select>
         
         <select value={month} onChange={(e) => setMonth(e.target.value)} style={{ padding: "8px", borderRadius: "5px" }}>
-            {months.map(m => <option key={m}>{m}</option>)}
+    {months.map(m => <option key={m}>{m}</option>)}
+</select>
+
+        <select value={year} onChange={(e) => setYear(e.target.value)} style={{ padding: "8px", borderRadius: "5px", width: "80px" }}>
+            <option value={new Date().getFullYear() - 1}>{new Date().getFullYear() - 1}</option>
+            <option value={new Date().getFullYear()}>{new Date().getFullYear()}</option>
         </select>
 
         <select value={session} onChange={(e) => setSession(e.target.value)} style={{ padding: "8px", borderRadius: "5px", backgroundColor: session==="Night"?"#1f2937":"white", color: session==="Night"?"white":"black" }}>
