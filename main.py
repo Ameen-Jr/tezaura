@@ -126,7 +126,18 @@ class DiscontinueSchema(BaseModel):
 
 class PromotionSchema(BaseModel):
     graduation_year: str # e.g. "2025"
-    reset_fees: bool     # true/false    
+    reset_fees: bool     # true/false   
+
+class FeeSettingsSchema(BaseModel):
+    fee_class_8: int
+    fee_class_9: int
+    fee_class_10: int
+    fee_class_8_old: int = 0
+    fee_class_9_old: int = 0
+    fee_class_10_old: int = 0
+    fee_class_8_from: str = "April"
+    fee_class_9_from: str = "April"
+    fee_class_10_from: str = "April"   
 
 class BatchDiscontinueSchema(BaseModel):
     admission_numbers: List[str]
@@ -437,13 +448,39 @@ def get_pending_fees(class_std: str, month: str, division: str = ""):
                     paid_str = record[0]
                     for m in ACADEMIC_ORDER:
                         if m in paid_str: paid_month_names.append(m)
-                pending_months = []
-                target_fee = 600 if class_std == "10" else 550
+                pending_months = []            
+                fee_keys = [
+                    'fee_class_8', 'fee_class_9', 'fee_class_10',
+                    'fee_class_8_old', 'fee_class_9_old', 'fee_class_10_old',
+                    'fee_class_8_from', 'fee_class_9_from', 'fee_class_10_from'
+                ]
+                placeholders = ','.join('?' for _ in fee_keys)
+                cursor.execute(f"SELECT key, value FROM system_settings WHERE key IN ({placeholders})", fee_keys)
+                fee_rows = cursor.fetchall()
+                fee_settings = {
+                    "fee_class_8": 550, "fee_class_9": 550, "fee_class_10": 600,
+                    "fee_class_8_old": 550, "fee_class_9_old": 550, "fee_class_10_old": 600,
+                    "fee_class_8_from": "April", "fee_class_9_from": "April", "fee_class_10_from": "April"
+                }
+                for row in fee_rows:
+                    key, value = row[0], row[1]
+                    fee_settings[key] = value if key.endswith("_from") else int(value)
+
+                def get_fee_for_month(cls, month):
+                    new_rate = fee_settings.get(f"fee_class_{cls}", 550)
+                    old_rate = fee_settings.get(f"fee_class_{cls}_old", new_rate)
+                    from_month = fee_settings.get(f"fee_class_{cls}_from", "April")
+                    if from_month == "April":
+                        return new_rate
+                    # Compare month positions in academic order
+                    from_idx = ACADEMIC_ORDER.index(from_month) if from_month in ACADEMIC_ORDER else 0
+                    month_idx = ACADEMIC_ORDER.index(month) if month in ACADEMIC_ORDER else 0
+                    return new_rate if month_idx >= from_idx else old_rate
                 total_due = 0
                 for req_month in required_months:
                     if req_month not in paid_month_names:
                         pending_months.append(req_month)
-                        total_due += target_fee
+                        total_due += get_fee_for_month(class_std, req_month)
                 if pending_months:
                     defaulters.append({"name": name, "adm": adm, "phone": phone, "pending_months": pending_months, "total_due": total_due})
             defaulters.sort(key=lambda x: x["total_due"], reverse=True)
@@ -1309,6 +1346,64 @@ def get_academic_year():
             result = cursor.fetchone()
             return {"academic_year": result[0] if result else "2025-26"}
     except Exception as e: return {"academic_year": "2025-26"}
+
+@app.get("/settings/fees")
+def get_fee_settings():
+    try:
+        with get_db() as connection:
+            cursor = connection.cursor()
+            all_keys = [
+                'fee_class_8', 'fee_class_9', 'fee_class_10',
+                'fee_class_8_old', 'fee_class_9_old', 'fee_class_10_old',
+                'fee_class_8_from', 'fee_class_9_from', 'fee_class_10_from'
+            ]
+            placeholders = ','.join('?' for _ in all_keys)
+            cursor.execute(f"SELECT key, value FROM system_settings WHERE key IN ({placeholders})", all_keys)
+            rows = cursor.fetchall()
+            fees = {
+                "fee_class_8": 550, "fee_class_9": 550, "fee_class_10": 600,
+                "fee_class_8_old": 550, "fee_class_9_old": 550, "fee_class_10_old": 600,
+                "fee_class_8_from": "April", "fee_class_9_from": "April", "fee_class_10_from": "April"
+            }
+            for row in rows:
+                key, value = row[0], row[1]
+                if key.endswith("_from"):
+                    fees[key] = value
+                else:
+                    fees[key] = int(value)
+            return fees
+    except Exception as e:
+        return {
+            "fee_class_8": 550, "fee_class_9": 550, "fee_class_10": 600,
+            "fee_class_8_old": 550, "fee_class_9_old": 550, "fee_class_10_old": 600,
+            "fee_class_8_from": "April", "fee_class_9_from": "April", "fee_class_10_from": "April"
+        }
+
+@app.post("/settings/fees")
+def save_fee_settings(data: FeeSettingsSchema):
+    try:
+        with get_db() as connection:
+            cursor = connection.cursor()
+            pairs = [
+                ("fee_class_8", str(data.fee_class_8)),
+                ("fee_class_9", str(data.fee_class_9)),
+                ("fee_class_10", str(data.fee_class_10)),
+                ("fee_class_8_old", str(data.fee_class_8_old)),
+                ("fee_class_9_old", str(data.fee_class_9_old)),
+                ("fee_class_10_old", str(data.fee_class_10_old)),
+                ("fee_class_8_from", data.fee_class_8_from),
+                ("fee_class_9_from", data.fee_class_9_from),
+                ("fee_class_10_from", data.fee_class_10_from),
+            ]
+            for key, value in pairs:
+                cursor.execute("""
+                    INSERT INTO system_settings (key, value) VALUES (?, ?)
+                    ON CONFLICT(key) DO UPDATE SET value = excluded.value
+                """, (key, value))
+            connection.commit()
+            return {"status": "success", "message": "Fee settings saved!"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # --- WEEKLY FEE STATS ---
 @app.get("/fees/stats/weekly")

@@ -5,6 +5,12 @@ import API_BASE from '../config';
 
 function PromotionManager() {
   const [step, setStep] = useState(1); // 1: Review, 2: Promote
+  const [feeSettings, setFeeSettings] = useState({
+    fee_class_8: 550, fee_class_9: 550, fee_class_10: 600,
+    fee_class_8_old: 550, fee_class_9_old: 550, fee_class_10_old: 600,
+    fee_class_8_from: "April", fee_class_9_from: "April", fee_class_10_from: "April"
+});
+  const [feeMessage, setFeeMessage] = useState("");
   const [reviewClass, setReviewClass] = useState("8");
   const [students, setStudents] = useState([]);
   const [selectedAdms, setSelectedAdms] = useState([]); // List of students to remove
@@ -14,6 +20,13 @@ function PromotionManager() {
   // Promotion State
   const [gradYear, setGradYear] = useState(new Date().getFullYear().toString());
   const [resetFees, setResetFees] = useState(true);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/settings/fees`)
+        .then(res => res.json())
+        .then(data => setFeeSettings(data))
+        .catch(err => console.error("Fee settings load failed", err));
+}, []);
 
   useEffect(() => {
     fetchStudents();
@@ -64,6 +77,24 @@ function PromotionManager() {
     setLoading(false);
   };
 
+  const saveFeeSettings = async () => {
+    try {
+        const res = await fetch(`${API_BASE}/settings/fees`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(feeSettings)
+        });
+        if (res.ok) {
+            setFeeMessage("✅ Fee settings saved!");
+            setTimeout(() => setFeeMessage(""), 3000);
+        } else {
+            setFeeMessage("❌ Failed to save.");
+        }
+    } catch (err) {
+        setFeeMessage("❌ Connection error.");
+    }
+ };
+
   const handleFinalPromotion = async () => {
      if (!window.confirm("⚠️ FINAL WARNING: This will graduate Class 10 and move Class 8 & 9 up. Ensure you have removed leavers first. Continue?")) return;
      
@@ -104,6 +135,74 @@ function PromotionManager() {
               <SafeLottie animationData={astroAnim} />
           </div>
       </div>
+
+      {/* FEE SETTINGS CARD */}
+<div className="card-glass" style={{ padding: "20px", marginBottom: "25px", border: "1px solid #e0f2fe", backgroundColor: "#f0f9ff" }}>
+    <h3 style={{ margin: "0 0 15px 0", color: "#0369a1", fontSize: "16px" }}>💰 Monthly Fee Settings</h3>
+    
+    {/* TABLE LAYOUT */}
+    <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "15px" }}>
+        <thead>
+            <tr style={{ backgroundColor: "#e0f2fe" }}>
+                <th style={{ padding: "8px 12px", textAlign: "left", fontSize: "12px", color: "#0369a1" }}>Class</th>
+                <th style={{ padding: "8px 12px", textAlign: "center", fontSize: "12px", color: "#0369a1" }}>Current Rate (₹)</th>
+                <th style={{ padding: "8px 12px", textAlign: "center", fontSize: "12px", color: "#0369a1" }}>Old Rate (₹)</th>
+                <th style={{ padding: "8px 12px", textAlign: "center", fontSize: "12px", color: "#0369a1" }}>New Rate From</th>
+            </tr>
+        </thead>
+        <tbody>
+            {[
+                { label: "Class 8", key: "8" },
+                { label: "Class 9", key: "9" },
+                { label: "Class 10", key: "10" }
+            ].map(({ label, key }) => (
+                <tr key={key} style={{ borderBottom: "1px solid #bae6fd" }}>
+                    <td style={{ padding: "10px 12px", fontWeight: "bold", color: "#374151" }}>{label}</td>
+                    <td style={{ padding: "10px 12px", textAlign: "center" }}>
+                        <input
+                            type="number"
+                            value={feeSettings[`fee_class_${key}`]}
+                            onChange={e => setFeeSettings(prev => ({ ...prev, [`fee_class_${key}`]: parseInt(e.target.value) || 0 }))}
+                            style={{ padding: "6px 10px", border: "1px solid #cbd5e1", borderRadius: "6px", width: "90px", fontSize: "15px", fontWeight: "bold", textAlign: "center" }}
+                        />
+                    </td>
+                    <td style={{ padding: "10px 12px", textAlign: "center" }}>
+                        <input
+                            type="number"
+                            value={feeSettings[`fee_class_${key}_old`]}
+                            onChange={e => setFeeSettings(prev => ({ ...prev, [`fee_class_${key}_old`]: parseInt(e.target.value) || 0 }))}
+                            style={{ padding: "6px 10px", border: "1px solid #cbd5e1", borderRadius: "6px", width: "90px", fontSize: "15px", textAlign: "center", color: "#6b7280" }}
+                        />
+                    </td>
+                    <td style={{ padding: "10px 12px", textAlign: "center" }}>
+                        <select
+                            value={feeSettings[`fee_class_${key}_from`]}
+                            onChange={e => setFeeSettings(prev => ({ ...prev, [`fee_class_${key}_from`]: e.target.value }))}
+                            style={{ padding: "6px 10px", border: "1px solid #cbd5e1", borderRadius: "6px", fontSize: "13px" }}
+                        >
+                            {["April","May","June","July","August","September","October","November","December","January","February","March"].map(m => (
+                                <option key={m} value={m}>{m}</option>
+                            ))}
+                        </select>
+                    </td>
+                </tr>
+            ))}
+        </tbody>
+    </table>
+
+    <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+        <button
+            onClick={saveFeeSettings}
+            style={{ padding: "8px 20px", backgroundColor: "#0369a1", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}
+        >
+            💾 Save Fee Settings
+        </button>
+        <span style={{ fontSize: "12px", color: "#64748b" }}>
+            💡 Set "New Rate From" to April if the rate applies for the full year.
+        </span>
+        {feeMessage && <span style={{ fontSize: "13px", color: feeMessage.includes("✅") ? "#15803d" : "#dc2626", fontWeight: "bold" }}>{feeMessage}</span>}
+    </div>
+</div>
 
       {/* STEPPER */}
       <div style={{ display: "flex", justifyContent: "center", gap: "20px", marginBottom: "30px" }}>

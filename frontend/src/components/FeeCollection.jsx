@@ -13,6 +13,18 @@ function FeeCollection() {
   const [paymentModal, setPaymentModal] = useState(null);
   const [amount, setAmount] = useState("");
   const [message, setMessage] = useState("");
+  const [feeSettings, setFeeSettings] = useState({
+    fee_class_8: 550, fee_class_9: 550, fee_class_10: 600,
+    fee_class_8_old: 550, fee_class_9_old: 550, fee_class_10_old: 600,
+    fee_class_8_from: "April", fee_class_9_from: "April", fee_class_10_from: "April"
+});
+
+useEffect(() => {
+    fetch(`${API_BASE}/settings/fees`)
+        .then(res => res.json())
+        .then(data => setFeeSettings(data))
+        .catch(err => console.error(err));
+}, []);
 
   const academicItems = [
     "Admission Fee", 
@@ -20,7 +32,14 @@ function FeeCollection() {
     "October", "November", "December", "January", "February", "March"
   ];
   
-  const currentYear = new Date().getFullYear(); 
+  const getAcademicYear = (month) => {
+    const laterMonths = ["January", "February", "March"];
+    const now = new Date();
+    const calYear = now.getFullYear();
+    const calMonth = now.getMonth(); // 0=Jan
+    const academicStartYear = calMonth < 3 ? calYear - 1 : calYear;
+    return laterMonths.includes(month) ? academicStartYear + 1 : academicStartYear;
+}; 
 
   // --- SEARCH LOGIC ---
   const handleSearch = async (e) => {
@@ -51,10 +70,19 @@ function FeeCollection() {
     } catch (err) { console.error(err); }
   };
 
-  const getTargetAmount = (item) => {
+  const ACADEMIC_ORDER = ["April","May","June","July","August","September","October","November","December","January","February","March"];
+
+const getTargetAmount = (item) => {
     if (item === "Admission Fee") return null;
-    return selectedStudent.class_standard === "10" ? 600 : 550;
-    };
+    const cls = selectedStudent.class_standard;
+    const newRate = cls === "10" ? feeSettings.fee_class_10 : cls === "9" ? feeSettings.fee_class_9 : feeSettings.fee_class_8;
+    const oldRate = cls === "10" ? feeSettings.fee_class_10_old : cls === "9" ? feeSettings.fee_class_9_old : feeSettings.fee_class_8_old;
+    const fromMonth = cls === "10" ? feeSettings.fee_class_10_from : cls === "9" ? feeSettings.fee_class_9_from : feeSettings.fee_class_8_from;
+    if (fromMonth === "April") return newRate;
+    const fromIdx = ACADEMIC_ORDER.indexOf(fromMonth);
+    const itemIdx = ACADEMIC_ORDER.indexOf(item);
+    return itemIdx >= fromIdx ? newRate : oldRate;
+};
 
   const getPaidAmount = (item) => {
     const relevantFees = feeHistory.filter(record => record.month_year.includes(item));
@@ -68,7 +96,9 @@ function FeeCollection() {
     
     if (target !== null && paid >= target) return;
 
-    const fullItemString = item === "Admission Fee" ? `Admission Fee ${currentYear}` : `${item} ${currentYear}`;
+    const fullItemString = item === "Admission Fee" 
+    ? `Admission Fee ${new Date().getFullYear()}` 
+    : `${item} ${getAcademicYear(item)}`;
     
     let suggestedAmount = "";
     if (item !== "Admission Fee") {
@@ -199,7 +229,11 @@ function FeeCollection() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
                 <div>
                     <h3 style={{ margin: "0", color: "#2c3e50" }}>{selectedStudent.name}</h3>
-                    <span style={{ color: "#7f8c8d" }}>Class {selectedStudent.class_standard} (Target: ₹{selectedStudent.class_standard === "10" ? 600 : 550})</span>
+                    <span style={{ color: "#7f8c8d" }}>Class {selectedStudent.class_standard} (Monthly: ₹{
+    selectedStudent.class_standard === "10" ? feeSettings.fee_class_10 :
+    selectedStudent.class_standard === "9" ? feeSettings.fee_class_9 :
+    feeSettings.fee_class_8
+})</span>
                 </div>
                 <button onClick={() => setView("search")} style={{ padding: "8px 15px", cursor: "pointer", backgroundColor: "#95a5a6", color: "white", border: "none", borderRadius: "5px" }}>← Change Student</button>
             </div>
