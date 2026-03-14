@@ -178,49 +178,96 @@ function AttendanceSheet() {
                         </tr>
                     </thead>
                     <tbody>
-                        {students.map((student, index) => (
-                            <tr 
-                                key={student.id} 
-                                onClick={() => toggleStatus(student.id)}
-                                style={{ 
-                                    borderBottom: "1px solid #F3F4F6", 
-                                    cursor: "pointer", 
-                                    backgroundColor: index % 2 === 0 ? "white" : "#FAFAFA",
-                                    transition: "background 0.2s"
-                                }}
-                                onMouseOver={(e) => e.currentTarget.style.backgroundColor = "#F3F4F6"}
-                                onMouseOut={(e) => e.currentTarget.style.backgroundColor = index % 2 === 0 ? "white" : "#FAFAFA"}
-                            >
-                                <td style={{ padding: "15px", fontWeight: "600", color: "#111827" }}>
-                                    {student.name}
-                                    <div style={{fontSize:"10px", color:"#9ca3af"}}>Adm: {student.adm}</div>
-                                </td>
-                                {/* Replaced Adm No with School */}
-                                <td style={{ padding: "15px", color: "#4B5563" }}>{student.school || "-"}</td>
-                                
-                                <td style={{ padding: "15px", textAlign: "center" }}>
-                                    <span style={{ 
-                                        padding: "6px 12px", borderRadius: "20px", fontSize: "12px", fontWeight: "bold",
-                                        backgroundColor: student.status === "Present" ? "#ECFDF5" : "#FEF2F2",
-                                        color: student.status === "Present" ? "#047857" : "#B91C1C",
-                                        border: `1px solid ${student.status === "Present" ? "#A7F3D0" : "#FECACA"}`
-                                    }}>
-                                        {student.status.toUpperCase()}
-                                    </span>
-                                </td>
+    {/* BOYS SECTION */}
+    {students.filter(s => s.gender === "Male").length > 0 && (
+        <tr>
+            <td colSpan="4" style={{ padding: "8px 15px", backgroundColor: "#EFF6FF", color: "#1e40af", fontWeight: "bold", fontSize: "13px", borderBottom: "1px solid #BFDBFE" }}>
+                👦 Boys ({students.filter(s => s.gender === "Male").length})
+            </td>
+        </tr>
+    )}
+    {students.filter(s => s.gender === "Male").map((student, index) => (
+        <tr 
+            key={student.id} 
+            onClick={() => toggleStatus(student.id)}
+            style={{ 
+                borderBottom: "1px solid #F3F4F6", 
+                cursor: "pointer", 
+                backgroundColor: index % 2 === 0 ? "white" : "#FAFAFA",
+                transition: "background 0.2s"
+            }}
+            onMouseOver={(e) => e.currentTarget.style.backgroundColor = "#F3F4F6"}
+            onMouseOut={(e) => e.currentTarget.style.backgroundColor = index % 2 === 0 ? "white" : "#FAFAFA"}
+        >
+            <td style={{ padding: "15px", fontWeight: "600", color: "#111827", fontSize: "16px" }}>{student.name}</td>
+            <td style={{ padding: "15px", color: "#4B5563" }}>{student.school || "-"}</td>
+            <td style={{ padding: "15px", textAlign: "center" }}>
+                <span style={{ 
+                    padding: "6px 12px", borderRadius: "20px", fontSize: "12px", fontWeight: "bold",
+                    backgroundColor: student.status === "Present" ? "#ECFDF5" : "#FEF2F2",
+                    color: student.status === "Present" ? "#047857" : "#B91C1C",
+                    border: `1px solid ${student.status === "Present" ? "#A7F3D0" : "#FECACA"}`
+                }}>
+                    {student.status.toUpperCase()}
+                </span>
+            </td>
+            <td style={{ padding: "15px", textAlign: "center" }}>
+                <button style={{ 
+                    padding: "5px 15px", cursor: "pointer", borderRadius: "5px", border: "none",
+                    backgroundColor: student.status === "Present" ? "#EF4444" : "#10B981",
+                    color: "white", fontSize: "12px"
+                }}>
+                    Mark {student.status === "Present" ? "Absent" : "Present"}
+                </button>
+            </td>
+        </tr>
+    ))}
 
-                                <td style={{ padding: "15px", textAlign: "center" }}>
-                                    <button style={{ 
-                                        padding: "5px 15px", cursor: "pointer", borderRadius: "5px", border: "none",
-                                        backgroundColor: student.status === "Present" ? "#EF4444" : "#10B981",
-                                        color: "white", fontSize: "12px"
-                                    }}>
-                                        Mark {student.status === "Present" ? "Absent" : "Present"}
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
+    {/* GIRLS SECTION */}
+    {students.filter(s => s.gender === "Female").length > 0 && (
+        <tr>
+            <td colSpan="4" style={{ padding: "8px 15px", backgroundColor: "#FDF2F8", color: "#9d174d", fontWeight: "bold", fontSize: "13px", borderBottom: "1px solid #FBCFE8", marginTop: "10px" }}>
+                👧 Girls ({students.filter(s => s.gender === "Female").length})
+            </td>
+        </tr>
+    )}
+    {students.filter(s => s.gender === "Female").map((student, index) => (
+        <tr 
+            key={student.id} 
+            onClick={() => toggleStatus(student.id)}
+            style={{ 
+                borderBottom: "1px solid #F3F4F6", 
+                cursor: "pointer", 
+                backgroundColor: index % 2 === 0 ? "white" : "#FAFAFA",
+                transition: "background 0.2s"
+            }}
+            onMouseOver={(e) => e.currentTarget.style.backgroundColor = "#F3F4F6"}
+            onMouseOut={(e) => e.currentTarget.style.backgroundColor = index % 2 === 0 ? "white" : "#FAFAFA"}
+        >
+            <td style={{ padding: "15px", fontWeight: "600", color: "#111827", fontSize: "16px" }}>{student.name}</td>
+            <td style={{ padding: "15px", color: "#4B5563" }}>{student.school || "-"}</td>
+            <td style={{ padding: "15px", textAlign: "center" }}>
+                <span style={{ 
+                    padding: "6px 12px", borderRadius: "20px", fontSize: "12px", fontWeight: "bold",
+                    backgroundColor: student.status === "Present" ? "#ECFDF5" : "#FEF2F2",
+                    color: student.status === "Present" ? "#047857" : "#B91C1C",
+                    border: `1px solid ${student.status === "Present" ? "#A7F3D0" : "#FECACA"}`
+                }}>
+                    {student.status.toUpperCase()}
+                </span>
+            </td>
+            <td style={{ padding: "15px", textAlign: "center" }}>
+                <button style={{ 
+                    padding: "5px 15px", cursor: "pointer", borderRadius: "5px", border: "none",
+                    backgroundColor: student.status === "Present" ? "#EF4444" : "#10B981",
+                    color: "white", fontSize: "12px"
+                }}>
+                    Mark {student.status === "Present" ? "Absent" : "Present"}
+                </button>
+            </td>
+        </tr>
+    ))}
+</tbody>
                 </table>
 
                 {students.length > 0 && (

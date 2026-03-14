@@ -290,8 +290,7 @@ def add_student(
 
         # Default to today if not provided
         if not admission_date:
-            from datetime import date
-            admission_date = date.today().isoformat()
+            admission_date = datetime.now().date().isoformat()
 
         with get_db() as connection:
             cursor = connection.cursor()
@@ -447,6 +446,7 @@ def get_pending_fees(class_std: str, month: str, division: str = ""):
                         total_due += target_fee
                 if pending_months:
                     defaulters.append({"name": name, "adm": adm, "phone": phone, "pending_months": pending_months, "total_due": total_due})
+            defaulters.sort(key=lambda x: x["total_due"], reverse=True)
             return {"class": class_std, "month_upto": month, "defaulters": defaulters}
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
 
@@ -471,7 +471,7 @@ def get_monthly_attendance_report(class_std: str, month: str, year: str, session
             cursor = connection.cursor()
             
             # 3. Get Students (Active Only)
-            query = "SELECT id, name, admission_number FROM students WHERE class_standard = ? AND is_active = 1"
+            query = "SELECT id, name, admission_number, gender FROM students WHERE class_standard = ? AND is_active = 1"
             params = [class_std]
             if division:
                 query += " AND division = ?"
@@ -522,7 +522,7 @@ def get_monthly_attendance_report(class_std: str, month: str, year: str, session
             total_presents_all_students = 0
             
             for s_row in students_rows:
-                s_id, name, adm = s_row
+                s_id, name, adm, gender = s_row
                 
                 # Get stats for this student
                 s_att = attendance_map.get(s_id, {})
@@ -537,7 +537,8 @@ def get_monthly_attendance_report(class_std: str, month: str, year: str, session
                 
                 report.append({
                     "name": name, 
-                    "adm": adm, 
+                    "adm": adm,
+                    "gender": gender,
                     "attendance": s_att, 
                     "present_days": p_count, 
                     "percentage": pct
@@ -666,7 +667,7 @@ def get_exams_grouped(class_std: str, division: str = ""):
                     "sort_order": sort_order or 0
                 })
 
-                return list(grouped.values())
+            return list(grouped.values())
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -942,14 +943,14 @@ def promote_students(data: PromotionSchema):
             cursor = connection.cursor()
             
             # 1. Archive Class 10
-            cursor.execute("SELECT admission_number, name, father_phone, address, photo_path, division, school_name FROM students WHERE class_standard = '10' AND is_active = 1")
+            cursor.execute("SELECT admission_number, name, father_phone, address, photo_path, division, school_name, gender FROM students WHERE class_standard = '10' AND is_active = 1")
             graduates = cursor.fetchall()
             for grad in graduates:
                 try:
                     cursor.execute("""
-                        INSERT INTO alumni (admission_number, name, last_class, division, school_name, year_graduated, phone, address, photo_path)
-                        VALUES (?, ?, '10', ?, ?, ?, ?, ?, ?)
-                    """, (grad[0], grad[1], grad[5], grad[6], data.graduation_year, grad[2], grad[3], grad[4]))
+                        INSERT INTO alumni (admission_number, name, last_class, division, school_name, gender, year_graduated, phone, address, photo_path)
+                                VALUES (?, ?, '10', ?, ?, ?, ?, ?, ?, ?)
+                            """, (grad[0], grad[1], grad[5], grad[6], grad[7], data.graduation_year, grad[2], grad[3], grad[4]))
                 except sqlite3.IntegrityError: pass
             
             # 2. Promote Classes (Order is critical: must go top-down to avoid chain promotion)
@@ -1075,7 +1076,7 @@ def get_alumni_list(year: str):
             cursor = connection.cursor()
             # UPDATED QUERY: Fetches Class, Division, and School Name
             query = """
-                SELECT a.name, a.admission_number, a.last_class, a.division, a.school_name
+                SELECT a.name, a.admission_number, a.last_class, a.division, a.school_name, a.gender
                 FROM alumni a
                 WHERE a.year_graduated = ?
                 ORDER BY a.name ASC
@@ -1088,7 +1089,8 @@ def get_alumni_list(year: str):
                     "adm": row[1], 
                     "class": row[2], 
                     "div": row[3], 
-                    "school": row[4] or "N/A"
+                    "school": row[4] or "N/A",
+                    "gender": row[5] or "Male"
                 })
             return results
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))

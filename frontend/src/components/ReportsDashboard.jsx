@@ -272,30 +272,52 @@ url = `${API_BASE}/reports/attendance-monthly?class_std=${classStd}&month=${mont
                     <h3>Total Strength: <span style={{ color: "#e67e22" }}>{reportData.total_students}</span></h3>
                 </div>
                 <div style={{ display: "flex", gap: "20px" }}>
-                    <div style={{ flex: 1, backgroundColor: "white", padding: "15px", border: "1px solid #ddd" }}>
-                        <h3 style={{ color: "#1565c0", textAlign: "center" }}>👦 Boys ({reportData.boys.length})</h3>
-                        <ul style={{ paddingLeft: "0", listStyleType: "none" }}>
-                            {reportData.boys.map((s, idx) => (
-                                <li key={s.adm} className="animate-row" style={{ borderBottom: "1px solid #f0f0f0", padding: "8px",
-        animationDelay: `${idx * 0.05}s` }}>
-                                    <span onClick={() => handleStudentClick(s.adm)} style={{ cursor: "pointer", color: "#2c3e50" }}>{idx+1}. {s.name}</span> 
-                                    <small style={{ marginLeft: "10px", color: "#999" }}>({s.school})</small>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                    <div style={{ flex: 1, backgroundColor: "white", padding: "15px", border: "1px solid #ddd" }}>
-                        <h3 style={{ color: "#c2185b", textAlign: "center" }}>👧 Girls ({reportData.girls.length})</h3>
-                        <ul style={{ paddingLeft: "0", listStyleType: "none" }}>
-                            {reportData.girls.map((s, idx) => (
-                                <li key={s.adm} className="animate-row" style={{ borderBottom: "1px solid #f0f0f0", padding: "8px",
-        animationDelay: `${idx * 0.05}s` }}>
-                                    <span onClick={() => handleStudentClick(s.adm)} style={{ cursor: "pointer", color: "#2c3e50" }}>{idx+1}. {s.name}</span> 
-                                    <small style={{ marginLeft: "10px", color: "#999" }}>({s.school})</small>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
+                    <div style={{ flex: 1, backgroundColor: "white", padding: "15px", border: "1px solid #ddd", borderRadius: "8px" }}>
+    <h3 style={{ color: "#1565c0", textAlign: "center", marginBottom: "12px" }}>👦 Boys ({reportData.boys.length})</h3>
+    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <thead>
+            <tr style={{ backgroundColor: "#EFF6FF", textAlign: "left" }}>
+                <th style={{ padding: "8px 10px", fontSize: "12px", color: "#1e40af", width: "30px" }}>#</th>
+                <th style={{ padding: "8px 10px", fontSize: "12px", color: "#1e40af" }}>Name</th>
+                <th style={{ padding: "8px 10px", fontSize: "12px", color: "#1e40af" }}>School</th>
+            </tr>
+        </thead>
+        <tbody>
+            {reportData.boys.map((s, idx) => (
+                <tr key={s.adm} className="animate-row" style={{ borderBottom: "1px solid #f0f0f0", animationDelay: `${idx * 0.05}s` }}>
+                    <td style={{ padding: "8px 10px", color: "#999", fontSize: "13px" }}>{idx + 1}</td>
+                    <td style={{ padding: "8px 10px" }}>
+                        <span onClick={() => handleStudentClick(s.adm)} style={{ cursor: "pointer", color: "#2c3e50", fontWeight: "600", fontSize: "14px" }}>{s.name}</span>
+                    </td>
+                    <td style={{ padding: "8px 10px", color: "#6b7280", fontSize: "13px" }}>{s.school}</td>
+                </tr>
+            ))}
+        </tbody>
+    </table>
+</div>
+<div style={{ flex: 1, backgroundColor: "white", padding: "15px", border: "1px solid #ddd", borderRadius: "8px" }}>
+    <h3 style={{ color: "#c2185b", textAlign: "center", marginBottom: "12px" }}>👧 Girls ({reportData.girls.length})</h3>
+    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <thead>
+            <tr style={{ backgroundColor: "#FDF2F8", textAlign: "left" }}>
+                <th style={{ padding: "8px 10px", fontSize: "12px", color: "#9d174d", width: "30px" }}>#</th>
+                <th style={{ padding: "8px 10px", fontSize: "12px", color: "#9d174d" }}>Name</th>
+                <th style={{ padding: "8px 10px", fontSize: "12px", color: "#9d174d" }}>School</th>
+            </tr>
+        </thead>
+        <tbody>
+            {reportData.girls.map((s, idx) => (
+                <tr key={s.adm} className="animate-row" style={{ borderBottom: "1px solid #f0f0f0", animationDelay: `${idx * 0.05}s` }}>
+                    <td style={{ padding: "8px 10px", color: "#999", fontSize: "13px" }}>{idx + 1}</td>
+                    <td style={{ padding: "8px 10px" }}>
+                        <span onClick={() => handleStudentClick(s.adm)} style={{ cursor: "pointer", color: "#2c3e50", fontWeight: "600", fontSize: "14px" }}>{s.name}</span>
+                    </td>
+                    <td style={{ padding: "8px 10px", color: "#6b7280", fontSize: "13px" }}>{s.school}</td>
+                </tr>
+            ))}
+        </tbody>
+    </table>
+</div>
                 </div>
             </div>
         )}
@@ -322,7 +344,7 @@ url = `${API_BASE}/reports/attendance-monthly?class_std=${classStd}&month=${mont
                 animationDelay: `${idx * 0.05}s` // <--- ADD THIS
             }}
         >
-            <td style={{padding: "10px"}}>{d.name} <small>({d.adm})</small></td>
+            <td style={{padding: "10px"}}>{d.name}</td>
             <td style={{padding: "10px", color: "#e74c3c"}}>{d.pending_months.join(", ")}</td>
             <td style={{padding: "10px", fontWeight: "bold"}}>₹{d.total_due}</td>
         </tr>
@@ -358,7 +380,7 @@ url = `${API_BASE}/reports/attendance-monthly?class_std=${classStd}&month=${mont
                         <thead>
                             <tr style={{ backgroundColor: "#1f2937", color: "white" }}>
                                 <th style={{ 
-                                    padding: "8px", textAlign: "left", width: "15%", 
+                                    padding: "8px", textAlign: "left", width: "22%", 
                                     position: "sticky", left: 0, backgroundColor: "#1f2937", 
                                     borderRight: "1px solid #374151", zIndex: 20
                                 }}>
@@ -383,81 +405,116 @@ url = `${API_BASE}/reports/attendance-monthly?class_std=${classStd}&month=${mont
                             </tr>
                         </thead>
                         <tbody>
-                            {reportData.students.map((student, idx) => (
-                                <tr 
-                                    key={student.adm} 
-                                    className="animate-row"
-                                    style={{ 
-                                        borderBottom: "1px solid #f3f4f6",
-                                        backgroundColor: hoveredStudent === student.adm ? "#f3f4f6" : "white",
-                                        height: "30px",
-                                        animationDelay: `${idx * 0.03}s`
-                                    }}
-                                    onMouseEnter={() => setHoveredStudent(student.adm)}
-                                    onMouseLeave={() => setHoveredStudent(null)}
-                                >
-                                    {/* STICKY NAME COLUMN */}
-                                    <td style={{ 
-                                        padding: "0 8px", fontWeight: "600", color: "#1f2937",
-                                        position: "sticky", left: 0, 
-                                        backgroundColor: hoveredStudent === student.adm ? "#f3f4f6" : "white",
-                                        borderRight: "1px solid #e5e7eb", zIndex: 10,
-                                        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"
-                                    }}>
-                                        <span onClick={() => handleStudentClick(student.adm)} style={{ cursor: "pointer" }}>
-                                            {idx + 1}. {student.name}
-                                        </span>
-                                    </td>
+    {/* BOYS SECTION */}
+    {reportData.students.filter(s => s.gender === "Male").length > 0 && (
+        <tr>
+            <td colSpan="35" style={{ padding: "6px 10px", backgroundColor: "#EFF6FF", color: "#1e40af", fontWeight: "bold", fontSize: "12px", borderBottom: "1px solid #BFDBFE", position: "sticky", left: 0 }}>
+                👦 Boys ({reportData.students.filter(s => s.gender === "Male").length})
+            </td>
+        </tr>
+    )}
+    {reportData.students.filter(s => s.gender === "Male").map((student, idx) => (
+        <tr 
+            key={student.adm} 
+            className="animate-row"
+            style={{ 
+                borderBottom: "1px solid #f3f4f6",
+                backgroundColor: hoveredStudent === student.adm ? "#f3f4f6" : "white",
+                height: "30px",
+                animationDelay: `${idx * 0.03}s`
+            }}
+            onMouseEnter={() => setHoveredStudent(student.adm)}
+            onMouseLeave={() => setHoveredStudent(null)}
+        >
+            <td style={{ 
+                padding: "0 8px", fontWeight: "600", color: "#1f2937", fontSize: "13px",
+                position: "sticky", left: 0, 
+                backgroundColor: hoveredStudent === student.adm ? "#f3f4f6" : "white",
+                borderRight: "1px solid #e5e7eb", zIndex: 10,
+                whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"
+            }}>
+                <span onClick={() => handleStudentClick(student.adm)} style={{ cursor: "pointer" }}>
+                    {idx + 1}. {student.name}
+                </span>
+            </td>
+            {daysInMonth.map(day => {
+                const dayInt = parseInt(day);
+                const status = student.attendance ? student.attendance[dayInt] : null;
+                const isCrosshair = hoveredDay === day || hoveredStudent === student.adm;
+                let cellColor = isCrosshair ? "#f9fafb" : "white";
+                let textColor = "#E5E7EB"; 
+                let symbol = "·"; 
+                if (status === "P") { cellColor = isCrosshair ? "#D1FAE5" : "#ECFDF5"; textColor = "#059669"; symbol = "●"; }
+                else if (status === "A") { cellColor = isCrosshair ? "#FEE2E2" : "#FEF2F2"; textColor = "#DC2626"; symbol = "✖"; }
+                return (
+                    <td key={day} style={{ textAlign: "center", borderRight: "1px solid #f9fafb", backgroundColor: cellColor, color: textColor, fontWeight: "bold", fontSize: "11px", padding: 0 }}
+                        onMouseEnter={() => {setHoveredDay(day); setHoveredStudent(student.adm);}}
+                        onMouseLeave={() => {setHoveredDay(null); setHoveredStudent(null);}}>
+                        {symbol}
+                    </td>
+                );
+            })}
+            <td style={{ textAlign: "center", fontWeight: "bold", color: "#059669", backgroundColor: "#ECFDF5", borderLeft: "2px solid #e5e7eb" }}>{student.present_days}</td>
+            <td style={{ textAlign: "center", fontWeight: "bold", color: "#DC2626", backgroundColor: "#FEF2F2" }}>{reportData.total_class_days - student.present_days}</td>
+            <td style={{ textAlign: "center", fontWeight: "bold", color: student.percentage < 75 ? "#DC2626" : "#1D4ED8" }}>{student.percentage}%</td>
+        </tr>
+    ))}
 
-                                    {/* ATTENDANCE CELLS */}
-                                    {daysInMonth.map(day => {
-                                        const dayInt = parseInt(day);
-                                        const status = student.attendance ? student.attendance[dayInt] : null;
-                                        const isCrosshair = hoveredDay === day || hoveredStudent === student.adm;
-                                        
-                                        let cellColor = isCrosshair ? "#f9fafb" : "white";
-                                        let textColor = "#E5E7EB"; 
-                                        let symbol = "·"; 
-
-                                        if (status === "P") {
-                                            cellColor = isCrosshair ? "#D1FAE5" : "#ECFDF5";
-                                            textColor = "#059669";
-                                            symbol = "●";
-                                        } else if (status === "A") {
-                                            cellColor = isCrosshair ? "#FEE2E2" : "#FEF2F2";
-                                            textColor = "#DC2626";
-                                            symbol = "✖";
-                                        }
-
-                                        return (
-                                            <td 
-                                                key={day} 
-                                                style={{ 
-                                                    textAlign: "center", borderRight: "1px solid #f9fafb",
-                                                    backgroundColor: cellColor, color: textColor,
-                                                    fontWeight: "bold", fontSize: "11px", padding: 0
-                                                }}
-                                                onMouseEnter={() => {setHoveredDay(day); setHoveredStudent(student.adm);}}
-                                                onMouseLeave={() => {setHoveredDay(null); setHoveredStudent(null);}}
-                                            >
-                                                {symbol}
-                                            </td>
-                                        );
-                                    })}
-
-                                    {/* STATS COLUMNS */}
-                                    <td style={{ textAlign: "center", fontWeight: "bold", color: "#059669", backgroundColor: "#ECFDF5", borderLeft: "2px solid #e5e7eb" }}>
-                                        {student.present_days}
-                                    </td>
-                                    <td style={{ textAlign: "center", fontWeight: "bold", color: "#DC2626", backgroundColor: "#FEF2F2" }}>
-                                        {reportData.total_class_days - student.present_days}
-                                    </td>
-                                    <td style={{ textAlign: "center", fontWeight: "bold", color: student.percentage < 75 ? "#DC2626" : "#1D4ED8" }}>
-                                        {student.percentage}%
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
+    {/* GIRLS SECTION */}
+    {reportData.students.filter(s => s.gender === "Female").length > 0 && (
+        <tr>
+            <td colSpan="35" style={{ padding: "6px 10px", backgroundColor: "#FDF2F8", color: "#9d174d", fontWeight: "bold", fontSize: "12px", borderBottom: "1px solid #FBCFE8", position: "sticky", left: 0 }}>
+                👧 Girls ({reportData.students.filter(s => s.gender === "Female").length})
+            </td>
+        </tr>
+    )}
+    {reportData.students.filter(s => s.gender === "Female").map((student, idx) => (
+        <tr 
+            key={student.adm} 
+            className="animate-row"
+            style={{ 
+                borderBottom: "1px solid #f3f4f6",
+                backgroundColor: hoveredStudent === student.adm ? "#f3f4f6" : "white",
+                height: "30px",
+                animationDelay: `${idx * 0.03}s`
+            }}
+            onMouseEnter={() => setHoveredStudent(student.adm)}
+            onMouseLeave={() => setHoveredStudent(null)}
+        >
+            <td style={{ 
+                padding: "0 8px", fontWeight: "600", color: "#1f2937", fontSize: "13px",
+                position: "sticky", left: 0, 
+                backgroundColor: hoveredStudent === student.adm ? "#f3f4f6" : "white",
+                borderRight: "1px solid #e5e7eb", zIndex: 10,
+                whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"
+            }}>
+                <span onClick={() => handleStudentClick(student.adm)} style={{ cursor: "pointer" }}>
+                    {idx + 1}. {student.name}
+                </span>
+            </td>
+            {daysInMonth.map(day => {
+                const dayInt = parseInt(day);
+                const status = student.attendance ? student.attendance[dayInt] : null;
+                const isCrosshair = hoveredDay === day || hoveredStudent === student.adm;
+                let cellColor = isCrosshair ? "#f9fafb" : "white";
+                let textColor = "#E5E7EB"; 
+                let symbol = "·"; 
+                if (status === "P") { cellColor = isCrosshair ? "#D1FAE5" : "#ECFDF5"; textColor = "#059669"; symbol = "●"; }
+                else if (status === "A") { cellColor = isCrosshair ? "#FEE2E2" : "#FEF2F2"; textColor = "#DC2626"; symbol = "✖"; }
+                return (
+                    <td key={day} style={{ textAlign: "center", borderRight: "1px solid #f9fafb", backgroundColor: cellColor, color: textColor, fontWeight: "bold", fontSize: "11px", padding: 0 }}
+                        onMouseEnter={() => {setHoveredDay(day); setHoveredStudent(student.adm);}}
+                        onMouseLeave={() => {setHoveredDay(null); setHoveredStudent(null);}}>
+                        {symbol}
+                    </td>
+                );
+            })}
+            <td style={{ textAlign: "center", fontWeight: "bold", color: "#059669", backgroundColor: "#ECFDF5", borderLeft: "2px solid #e5e7eb" }}>{student.present_days}</td>
+            <td style={{ textAlign: "center", fontWeight: "bold", color: "#DC2626", backgroundColor: "#FEF2F2" }}>{reportData.total_class_days - student.present_days}</td>
+            <td style={{ textAlign: "center", fontWeight: "bold", color: student.percentage < 75 ? "#DC2626" : "#1D4ED8" }}>{student.percentage}%</td>
+        </tr>
+    ))}
+</tbody>
                     </table>
                 </div>
             </div>
@@ -465,36 +522,62 @@ url = `${API_BASE}/reports/attendance-monthly?class_std=${classStd}&month=${mont
 
         {/* REPORT 4: ALUMNI LIST */}
         {reportType === "alumni" && reportData && Array.isArray(reportData) && (
-            <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
-                <h3 style={{ borderBottom: "2px solid #2c3e50", paddingBottom: "10px" }}>🎓 SSLC Batch {selectedGradYear} Alumni</h3>
-                {reportData.length === 0 ? <p>No records found.</p> : (
-                    <table style={{ width: "100%", borderCollapse: "collapse", backgroundColor: "white" }}>
+    <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
+        <h3 style={{ borderBottom: "2px solid #2c3e50", paddingBottom: "10px" }}>🎓 SSLC Batch {selectedGradYear} Alumni</h3>
+        {reportData.length === 0 ? <p>No records found.</p> : (
+            <div style={{ display: "flex", gap: "20px" }}>
+                {/* BOYS */}
+                <div style={{ flex: 1, backgroundColor: "white", padding: "15px", border: "1px solid #ddd", borderRadius: "8px" }}>
+                    <h3 style={{ color: "#1565c0", textAlign: "center", marginBottom: "12px" }}>👦 Boys ({reportData.filter(s => s.gender === "Male").length})</h3>
+                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
                         <thead>
-                            <tr style={{ background: "#f8f9fa", textAlign: "left" }}>
-                                <th style={{ padding: "12px" }}>Sl No</th>
-                                <th style={{ padding: "12px" }}>Name</th>
-                                <th style={{ padding: "12px" }}>Class</th>
-                                <th style={{ padding: "12px" }}>School</th>
+                            <tr style={{ backgroundColor: "#EFF6FF", textAlign: "left" }}>
+                                <th style={{ padding: "8px 10px", fontSize: "12px", color: "#1e40af" }}>#</th>
+                                <th style={{ padding: "8px 10px", fontSize: "12px", color: "#1e40af" }}>Name</th>
+                                <th style={{ padding: "8px 10px", fontSize: "12px", color: "#1e40af" }}>School</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {reportData.map((s, idx) => (
-                                <tr key={s.adm} className="animate-row" style={{ borderBottom: "1px solid #eee", animationDelay: `${idx * 0.05}s` }}>
-                                    <td style={{ padding: "12px" }}>{idx + 1}</td>
-                                    <td style={{ padding: "12px" }}>
-                                        <span onClick={() => handleStudentClick(s.adm)} style={{ fontWeight: "bold", cursor: "pointer", color: "#2980b9" }}>
-                                            {s.name}
-                                        </span>
+                            {reportData.filter(s => s.gender === "Male").map((s, idx) => (
+                                <tr key={s.adm} className="animate-row" style={{ borderBottom: "1px solid #f0f0f0", animationDelay: `${idx * 0.05}s` }}>
+                                    <td style={{ padding: "8px 10px", color: "#999", fontSize: "13px" }}>{idx + 1}</td>
+                                    <td style={{ padding: "8px 10px" }}>
+                                        <span onClick={() => handleStudentClick(s.adm)} style={{ fontWeight: "600", cursor: "pointer", color: "#2c3e50", fontSize: "14px" }}>{s.name}</span>
                                     </td>
-                                    <td style={{ padding: "12px" }}>{s.class} {s.div}</td>
-                                    <td style={{ padding: "12px", color: "#666" }}>{s.school}</td>
+                                    <td style={{ padding: "8px 10px", color: "#6b7280", fontSize: "13px" }}>{s.school}</td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
-                )}
+                </div>
+                {/* GIRLS */}
+                <div style={{ flex: 1, backgroundColor: "white", padding: "15px", border: "1px solid #ddd", borderRadius: "8px" }}>
+                    <h3 style={{ color: "#c2185b", textAlign: "center", marginBottom: "12px" }}>👧 Girls ({reportData.filter(s => s.gender === "Female").length})</h3>
+                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                        <thead>
+                            <tr style={{ backgroundColor: "#FDF2F8", textAlign: "left" }}>
+                                <th style={{ padding: "8px 10px", fontSize: "12px", color: "#9d174d" }}>#</th>
+                                <th style={{ padding: "8px 10px", fontSize: "12px", color: "#9d174d" }}>Name</th>
+                                <th style={{ padding: "8px 10px", fontSize: "12px", color: "#9d174d" }}>School</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {reportData.filter(s => s.gender === "Female").map((s, idx) => (
+                                <tr key={s.adm} className="animate-row" style={{ borderBottom: "1px solid #f0f0f0", animationDelay: `${idx * 0.05}s` }}>
+                                    <td style={{ padding: "8px 10px", color: "#999", fontSize: "13px" }}>{idx + 1}</td>
+                                    <td style={{ padding: "8px 10px" }}>
+                                        <span onClick={() => handleStudentClick(s.adm)} style={{ fontWeight: "600", cursor: "pointer", color: "#2c3e50", fontSize: "14px" }}>{s.name}</span>
+                                    </td>
+                                    <td style={{ padding: "8px 10px", color: "#6b7280", fontSize: "13px" }}>{s.school}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         )}
+    </div>
+)}
 
         {/* REPORT 5: DISCONTINUED LIST (NEW) */}
         {reportType === "discontinued" && reportData && Array.isArray(reportData) && (

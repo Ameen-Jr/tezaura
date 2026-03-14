@@ -24,6 +24,7 @@ function StudentProfile({ student, onBack }) {
   // Discontinue State
   const [showDiscontinue, setShowDiscontinue] = useState(false);
   const [discontinueReason, setDiscontinueReason] = useState("");
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
 
   const subjects = [
       { key: "lang_i", label: "First Language I" },
@@ -233,7 +234,7 @@ function StudentProfile({ student, onBack }) {
     </div>
 )}
              
-             {imageSrc ? <img src={imageSrc} style={{ width: "150px", height: "150px", borderRadius: "50%", objectFit: "cover", border: isFullAplus ? "5px solid #FFD700" : "5px solid #ecf0f1", boxShadow: isFullAplus ? "0 0 20px rgba(255, 215, 0, 0.6)" : "none" }} /> 
+             {imageSrc ? <img src={imageSrc} onClick={() => setShowPhotoModal(true)} style={{ width: "150px", height: "150px", borderRadius: "50%", objectFit: "cover", border: isFullAplus ? "5px solid #FFD700" : "5px solid #ecf0f1", boxShadow: isFullAplus ? "0 0 20px rgba(255, 215, 0, 0.6)" : "none", cursor: "zoom-in" }} />
              : <div style={{ width: "150px", height: "150px", borderRadius: "50%", backgroundColor: "#bdc3c7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "50px", border: isFullAplus ? "5px solid #FFD700" : "5px solid #ecf0f1" }}>👤</div>}
              
              {isEditing && <div onClick={() => fileInputRef.current.click()} style={{ position: "absolute", bottom: "5px", left: "50%", transform: "translateX(-50%)", backgroundColor: "rgba(0,0,0,0.6)", color: "white", padding: "5px 10px", borderRadius: "20px", fontSize: "12px", cursor: "pointer", width: "80%", textAlign: "center" }}>📷 Change</div>}
@@ -305,7 +306,7 @@ function StudentProfile({ student, onBack }) {
     height: "100%", 
     backgroundColor: attendanceStats.percentage >= 75 ? "#27ae60" : "#e74c3c" 
   }}
-></div>
+    ></div>
                         </div>
                         <span style={{ fontWeight: "bold", color: attendanceStats.percentage >= 75 ? "#27ae60" : "#e74c3c" }}>{attendanceStats.percentage}%</span>
                     </div>
@@ -419,7 +420,28 @@ function StudentProfile({ student, onBack }) {
             </div>
         </div>
       )}
-
+        {/* PHOTO LIGHTBOX MODAL */}
+{showPhotoModal && imageSrc && (
+    <div 
+        onClick={() => setShowPhotoModal(false)}
+        style={{ 
+            position: "fixed", top: 0, left: 0, width: "100%", height: "100%", 
+            backgroundColor: "rgba(0,0,0,0.85)", display: "flex", 
+            justifyContent: "center", alignItems: "center", zIndex: 2000,
+            cursor: "zoom-out", backdropFilter: "blur(6px)"
+        }}
+    >
+        <img 
+            src={imageSrc} 
+            style={{ 
+                maxWidth: "80vw", maxHeight: "80vh", 
+                borderRadius: "12px", objectFit: "contain",
+                boxShadow: "0 25px 60px rgba(0,0,0,0.5)",
+                border: isFullAplus ? "4px solid #FFD700" : "4px solid white"
+            }} 
+        />
+    </div>
+)}
     </div>
   );
 }
