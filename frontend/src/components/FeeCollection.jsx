@@ -209,14 +209,13 @@ const getTargetAmount = (item) => {
 
            {/* 3. FEE TRENDS GRAPH (Pure SVG - Crash Proof) */}
            <div className="card-glass" style={{ 
-              height: "350px", 
-              borderRadius: "20px", 
-              marginBottom: "40px",
-              backgroundColor: "white",
-              padding: "20px",
-              boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
-              border: "1px solid #f1f5f9"
-           }}>
+                borderRadius: "20px", 
+                marginBottom: "40px",
+                backgroundColor: "white",
+                padding: "30px",
+                boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
+                border: "1px solid #f1f5f9"
+            }}>
               <FeeGraph />
            </div>
 

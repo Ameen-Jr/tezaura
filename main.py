@@ -487,6 +487,75 @@ def get_pending_fees(class_std: str, month: str, division: str = ""):
             return {"class": class_std, "month_upto": month, "defaulters": defaulters}
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/stats/monthly-defaulters")
+def get_monthly_defaulters():
+    try:
+        with get_db() as connection:
+            cursor = connection.cursor()
+
+            # Get all active students
+            cursor.execute("SELECT id, class_standard FROM students WHERE is_active = 1")
+            students = cursor.fetchall()
+
+            # Get all fee records
+            cursor.execute("SELECT student_id, month_year FROM fees")
+            fee_rows = cursor.fetchall()
+
+            # Build a set of (student_id, month) pairs that have paid
+            paid_set = set()
+            for row in fee_rows:
+                sid, month_year = row[0], row[1]
+                for m in ACADEMIC_ORDER:
+                    if m in month_year:
+                        paid_set.add((sid, m))
+
+            # Only count months that have already passed
+            from datetime import date
+            today = date.today()
+            current_month = today.month
+            # Academic months that have passed (April=4 to current month)
+            # Academic year: April(4) to March(3)
+            passed_months = set()
+            for m in ACADEMIC_ORDER:
+                m_num = {
+                    "April":4,"May":5,"June":6,"July":7,"August":8,"September":9,
+                    "October":10,"November":11,"December":12,"January":1,"February":2,"March":3
+                }[m]
+                # If current month >= April, academic year started this year
+                # Months April-current are passed
+                if current_month >= 4:
+                    if 4 <= m_num <= current_month:
+                        passed_months.add(m)
+                else:
+                    # Jan/Feb/Mar — months April-Dec last year + Jan-current this year
+                    if m_num >= 4 or m_num <= current_month:
+                        passed_months.add(m)
+
+            # Count defaulters per month (only passed months)
+            result = {}
+            for m in ACADEMIC_ORDER:
+                if m not in passed_months:
+                    result[m] = 0
+                    continue
+                count = 0
+                for s in students:
+                    sid = s[0]
+                    if (sid, m) not in paid_set:
+                        count += 1
+                result[m] = count
+
+            # Map to short labels matching the graph
+            month_short = {
+                "April": "Apr", "May": "May", "June": "Jun", "July": "Jul",
+                "August": "Aug", "September": "Sep", "October": "Oct",
+                "November": "Nov", "December": "Dec", "January": "Jan",
+                "February": "Feb", "March": "Mar"
+            }
+            return [{"label": month_short[m], "defaulters": result[m]} for m in ACADEMIC_ORDER]
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/reports/attendance-monthly")
 def get_monthly_attendance_report(class_std: str, month: str, year: str, session: str = "Day", division: str = ""):
     try:
