@@ -1776,6 +1776,86 @@ async def restore_backup(file: UploadFile = File(...)):
 
     return {"message": "Database restored successfully. Please restart the software."}
 
+@app.get("/analytics/class-performance")
+def get_class_performance(class_std: str, division: str = ""):
+    try:
+        with get_db() as connection:
+            cursor = connection.cursor()
+
+            # 1. Get students
+            query = "SELECT id, name, admission_number, gender, school_name FROM students WHERE class_standard = ? AND is_active = 1"
+            params = [class_std]
+            if division:
+                query += " AND division = ?"
+                params.append(division)
+            query += " ORDER BY name ASC"
+            cursor.execute(query, tuple(params))
+            students = cursor.fetchall()
+
+            result = []
+            for s in students:
+                s_id, name, adm, gender, school_name = s
+
+                # 2. Attendance %
+                cursor.execute("SELECT COUNT(DISTINCT date) FROM attendance WHERE student_id = ?", (s_id,))
+                total_days = cursor.fetchone()[0]
+                cursor.execute("SELECT COUNT(DISTINCT date) FROM attendance WHERE student_id = ? AND status = 'Present' AND session = 'Day'", (s_id,))
+                present_days = cursor.fetchone()[0]
+                att_pct = round((present_days / total_days) * 100, 1) if total_days > 0 else 0
+
+                # 3. Exam marks - get all marks with dates for trend
+                cursor.execute("""
+                SELECT e.name, e.date, e.subject, m.marks_obtained, e.max_marks
+                FROM marks m
+                JOIN exams e ON m.exam_id = e.id
+                WHERE m.student_id = ? AND e.class_standard = ?
+                ORDER BY e.date ASC, e.name ASC
+            """, (s_id, class_std))
+                mark_rows = cursor.fetchall()
+
+                avg_marks_pct = 0
+                trend = "stable"
+                exam_history = []
+
+                if mark_rows:
+                    pcts = [round((r[3] / r[4]) * 100, 1) if r[4] > 0 else 0 for r in mark_rows]
+                    avg_marks_pct = round(sum(pcts) / len(pcts), 1)
+                    grouped = {}
+                    for r in mark_rows:
+                        key = f"{r[0]}||{r[1]}"
+                        if key not in grouped:
+                            grouped[key] = {"name": r[0], "date": r[1], "subjects": []}
+                        pct = round((r[3]/r[4])*100, 1) if r[4] > 0 else 0
+                        grouped[key]["subjects"].append({"subject": r[2], "marks": r[3], "max": r[4], "pct": pct})
+                    exam_history = list(grouped.values())
+
+                    # Trend: compare first half avg vs second half avg
+                    if len(pcts) >= 4:
+                        mid = len(pcts) // 2
+                        first_half = sum(pcts[:mid]) / mid
+                        second_half = sum(pcts[mid:]) / (len(pcts) - mid)
+                        if second_half > first_half + 5:
+                            trend = "improving"
+                        elif second_half < first_half - 5:
+                            trend = "declining"
+
+                result.append({
+                    "id": s_id,
+                    "name": name,
+                    "adm": adm,
+                    "gender": gender,
+                    "school": school_name or "N/A",
+                    "attendance_pct": att_pct,
+                    "avg_marks_pct": avg_marks_pct,
+                    "trend": trend,
+                    "exam_count": len(mark_rows),
+                    "exam_history": exam_history
+                })
+
+            return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/")
 def check_connection():
     return {"status": "ClassFlow Universal is Online"}

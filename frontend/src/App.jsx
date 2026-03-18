@@ -16,6 +16,7 @@ import SafeLottie from './components/SafeLottie';
 import SessionBadge from './components/SessionBadge';
 import About from './components/About';
 import BackupManager from './components/BackupManager';
+import Analytics from './components/Analytics';
 import settingsAnim from './components/settingsAnim.json';
 import API_BASE from './config';
 
@@ -820,6 +821,7 @@ function App() {
             <MenuItem id="exams" label="Exams & Results" icon="📝" color="#F472B6" />
             {/* Reports moved HERE */}
             <MenuItem id="reports" label="Reports" icon="📊" color="#A78BFA" />
+            <MenuItem id="analytics" label="Analytics" icon="🔬" color="#06b6d4" />
             
             <div style={{ padding: "20px 20px 10px", fontSize: "12px", color: "#6B7280", fontWeight: "bold", textTransform: "uppercase" }}>Finance & Admin</div>
             <MenuItem id="fees" label="Fee Collection" icon="💰" color="#34D399" />
@@ -864,7 +866,8 @@ function App() {
                     {view === "attendance" && "Attendance Register"}
                     {view === "exams" && "Examination Control"}
                     {view === "library" && "Library Management"}
-                    {view === "reports" && "Reports & Analytics"}
+                    {view === "reports" && "Reports"}
+                    {view === "analytics" && "Student Analytics"}
                     {view === "customlist" && "Custom List Generator"}
                     {view === "promote" && "Year-End Promotion"}
                     {view === "profile" && "Student Profile"}
@@ -890,6 +893,7 @@ function App() {
             {view === "search" && <SearchStudent onViewProfile={handleViewProfile} />}
             {view === "fees" && <FeeCollection />}
             {view === "reports" && <ReportsDashboard onViewProfile={handleViewProfile} />}
+            {view === "analytics" && <Analytics />}
             {view === "attendance" && <AttendanceSheet />}
             {view === "exams" && <ExamManager />}
             {view === "library" && <LibraryManager />}

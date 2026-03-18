@@ -320,11 +320,22 @@ function StudentProfile({ student, onBack }) {
             <p><strong>Gender:</strong> {isEditing ? <select name="gender" value={editData.gender} onChange={handleChange} style={inputStyle}><option value="Male">Male</option><option value="Female">Female</option></select> : editData.gender}</p>
             
             {editData.class_standard === "10" && (
-                <div style={{ marginTop: "10px", padding: "10px", backgroundColor: "#e8f6f3", border: "1px dashed #27ae60", borderRadius: "5px" }}>
-                    <p style={{ margin: 0, fontWeight: "bold", color: "#145a32" }}>SSLC Reg No:</p>
-                    {isEditing ? <input name="sslc_number" value={editData.sslc_number || ""} onChange={handleChange} style={{ ...inputStyle, border: "1px solid #27ae60" }} placeholder="Enter Reg No" /> : <span style={{ fontSize: "18px", fontWeight: "bold" }}>{editData.sslc_number || "Not Updated"}</span>}
-                </div>
-            )}
+    <div style={{ marginTop: "10px", padding: "10px", backgroundColor: "#e8f6f3", border: "1px dashed #27ae60", borderRadius: "5px" }}>
+        <p style={{ margin: 0, fontWeight: "bold", color: "#145a32", marginBottom: "6px" }}>SSLC Reg No:</p>
+        {isEditing ? (
+            <input name="sslc_number" value={editData.sslc_number || ""} onChange={handleChange} style={{ ...inputStyle, border: "1px solid #27ae60" }} placeholder="Enter Reg No" />
+        ) : (
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <span style={{ fontSize: "18px", fontWeight: "bold" }}>{editData.sslc_number || "Not Updated"}</span>
+                {!editData.sslc_number && (
+                    <button onClick={() => setIsEditing(true)} style={{ padding: "3px 10px", fontSize: "12px", backgroundColor: "#27ae60", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}>
+                        + Add
+                    </button>
+                )}
+            </div>
+        )}
+    </div>
+)}
         </div>
 
         {/* GUARDIAN DETAILS - Now Fully Restored */}
@@ -348,8 +359,8 @@ function StudentProfile({ student, onBack }) {
       </div>
 
       {/* --- SSLC RESULT SECTION --- */}
-      {editData.class_standard === "10" && (
-          <div className="card-glass" style={{ marginTop: "20px", padding: "20px", border: "2px solid #F1C40F" }}>
+      {editData.class_standard === "10" && editData.sslc_number && (
+    <div className="card-glass" style={{ marginTop: "20px", padding: "20px", border: "2px solid #F1C40F" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid #F1C40F", paddingBottom: "10px", marginBottom: "15px" }}>
                   <h3 style={{ margin: 0, color: "#D35400" }}>🏆 SSLC Examination Results</h3>
                   <div className="no-print">
