@@ -2,49 +2,49 @@ import React, { useState, useEffect, useRef } from 'react';
 import API_BASE from '../config';
 
 function ExamHistorySection({ examHistory, marksThreshold }) {
-    const [expanded, setExpanded] = useState({});
-    const toggle = (key) => setExpanded(prev => ({ ...prev, [key]: !prev[key] }));
+  const [expanded, setExpanded] = useState({});
+  const toggle = (key) => setExpanded(prev => ({ ...prev, [key]: !prev[key] }));
 
-    return (
-        <div>
-            <div style={{ fontSize: "13px", fontWeight: "700", color: "#374151", marginBottom: "8px" }}>Exam History</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                {examHistory.map((exam, i) => {
-                    const key = `${exam.name}||${exam.date}`;
-                    const isOpen = expanded[key];
-                    const avgPct = exam.subjects && exam.subjects.length > 0
-                        ? Math.round(exam.subjects.reduce((s, x) => s + x.pct, 0) / exam.subjects.length)
-                        : exam.pct || 0;
-                    return (
-                        <div key={i} style={{ border: "1px solid #f1f5f9", borderRadius: "8px", overflow: "hidden" }}>
-                            <div onClick={() => toggle(key)} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 10px", cursor: "pointer", backgroundColor: isOpen ? "#f8fafc" : "white" }}>
-                                <span style={{ fontSize: "11px", color: "#94a3b8" }}>{isOpen ? "▾" : "▸"}</span>
-                                <div style={{ fontSize: "12px", fontWeight: "700", color: "#374151", flex: 1 }}>{exam.name}</div>
-                                <div style={{ fontSize: "10px", color: "#94a3b8", marginRight: "6px" }}>{exam.date}</div>
-                                <div style={{ width: "50px", height: "6px", backgroundColor: "#f1f5f9", borderRadius: "3px", overflow: "hidden" }}>
-                                    <div style={{ height: "100%", width: `${avgPct}%`, backgroundColor: avgPct >= marksThreshold ? "#22c55e" : "#ef4444", borderRadius: "3px" }} />
-                                </div>
-                                <div style={{ fontSize: "11px", fontWeight: "700", color: avgPct >= marksThreshold ? "#22c55e" : "#ef4444", width: "35px", textAlign: "right" }}>{avgPct}%</div>
-                            </div>
-                            {isOpen && exam.subjects && (
-                                <div style={{ padding: "4px 10px 10px 26px", backgroundColor: "#f8fafc", display: "flex", flexDirection: "column", gap: "5px" }}>
-                                    {exam.subjects.map((sub, j) => (
-                                        <div key={j} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                            <div style={{ fontSize: "11px", color: "#6b7280", width: "90px", flexShrink: 0 }}>{sub.subject}</div>
-                                            <div style={{ flex: 1, height: "5px", backgroundColor: "#e5e7eb", borderRadius: "3px", overflow: "hidden" }}>
-                                                <div style={{ height: "100%", width: `${sub.pct}%`, backgroundColor: sub.pct >= marksThreshold ? "#22c55e" : "#ef4444", borderRadius: "3px" }} />
-                                            </div>
-                                            <div style={{ fontSize: "11px", color: "#374151", width: "60px", textAlign: "right" }}>{sub.marks}/{sub.max} ({sub.pct}%)</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    );
-                })}
+  return (
+    <div>
+      <div style={{ fontSize: "13px", fontWeight: "700", color: "#374151", marginBottom: "8px" }}>Exam History</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+        {examHistory.map((exam, i) => {
+          const key = `${exam.name}||${exam.date}`;
+          const isOpen = expanded[key];
+          const avgPct = exam.subjects && exam.subjects.length > 0
+            ? Math.round(exam.subjects.reduce((s, x) => s + x.pct, 0) / exam.subjects.length)
+            : exam.pct || 0;
+          return (
+            <div key={i} style={{ border: "1px solid #f1f5f9", borderRadius: "8px", overflow: "hidden" }}>
+              <div onClick={() => toggle(key)} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 10px", cursor: "pointer", backgroundColor: isOpen ? "#f8fafc" : "white" }}>
+                <span style={{ fontSize: "11px", color: "#94a3b8" }}>{isOpen ? "▾" : "▸"}</span>
+                <div style={{ fontSize: "12px", fontWeight: "700", color: "#374151", flex: 1 }}>{exam.name}</div>
+                <div style={{ fontSize: "10px", color: "#94a3b8", marginRight: "6px" }}>{exam.date}</div>
+                <div style={{ width: "50px", height: "6px", backgroundColor: "#f1f5f9", borderRadius: "3px", overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${avgPct}%`, backgroundColor: avgPct >= marksThreshold ? "#22c55e" : "#ef4444", borderRadius: "3px" }} />
+                </div>
+                <div style={{ fontSize: "11px", fontWeight: "700", color: avgPct >= marksThreshold ? "#22c55e" : "#ef4444", width: "35px", textAlign: "right" }}>{avgPct}%</div>
+              </div>
+              {isOpen && exam.subjects && (
+                <div style={{ padding: "4px 10px 10px 26px", backgroundColor: "#f8fafc", display: "flex", flexDirection: "column", gap: "5px" }}>
+                  {exam.subjects.map((sub, j) => (
+                    <div key={j} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <div style={{ fontSize: "11px", color: "#6b7280", width: "90px", flexShrink: 0 }}>{sub.subject}</div>
+                      <div style={{ flex: 1, height: "5px", backgroundColor: "#e5e7eb", borderRadius: "3px", overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${sub.pct}%`, backgroundColor: sub.pct >= marksThreshold ? "#22c55e" : "#ef4444", borderRadius: "3px" }} />
+                      </div>
+                      <div style={{ fontSize: "11px", color: "#374151", width: "60px", textAlign: "right" }}>{sub.marks}/{sub.max} ({sub.pct}%)</div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-        </div>
-    );
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 function Analytics() {
@@ -105,6 +105,19 @@ function Analytics() {
   return (
     <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "20px", fontFamily: "sans-serif" }}>
 
+      {/* PRINT HEADER */}
+      <div className="print-only">
+        <h1>Universal Trust, Kunnuvazhy</h1>
+        <p>Education & Learning Centre</p>
+        <hr style={{ margin: "10px 0", borderTop: "1px solid #000" }} />
+        <h3 style={{ textAlign: "center", margin: "10px 0" }}>
+          Student Analytics Report
+        </h3>
+        <p style={{ textAlign: "center", margin: "4px 0 0", fontSize: "13pt" }}>
+          Class {classStd}{division ? ` — Division ${division}` : ""}
+        </p>
+      </div>
+
       {/* CONTROLS */}
       <div className="card-glass" style={{ padding: "16px 20px", marginBottom: "24px", display: "flex", gap: "20px", alignItems: "flex-end", flexWrap: "wrap", backgroundColor: "white" }}>
         <div>
@@ -125,30 +138,48 @@ function Analytics() {
           </select>
         </div>
         <div>
-  <label style={{ display: "block", fontSize: "11px", fontWeight: "700", color: "#6b7280", marginBottom: "5px", textTransform: "uppercase" }}>
-    Attendance Threshold: <span style={{ color: "#ef4444" }}>{attThreshold}%</span>
-  </label>
-  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-    <input type="range" min="0" max="100" value={attThreshold} onChange={e => setAttThreshold(Number(e.target.value))}
-        style={{ width: "120px", accentColor: "#ef4444" }} />
-    <input type="number" min="0" max="100" value={attThreshold} onChange={e => setAttThreshold(Number(e.target.value))}
-        style={{ width: "55px", padding: "4px 6px", borderRadius: "6px", border: "1px solid #e5e7eb", fontSize: "13px", fontWeight: "700", color: "#ef4444", textAlign: "center" }} />
-  </div>
-</div>
-<div>
-  <label style={{ display: "block", fontSize: "11px", fontWeight: "700", color: "#6b7280", marginBottom: "5px", textTransform: "uppercase" }}>
-    Marks Threshold: <span style={{ color: "#f59e0b" }}>{marksThreshold}%</span>
-  </label>
-  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-    <input type="range" min="0" max="100" value={marksThreshold} onChange={e => setMarksThreshold(Number(e.target.value))}
-        style={{ width: "120px", accentColor: "#f59e0b" }} />
-    <input type="number" min="0" max="100" value={marksThreshold} onChange={e => setMarksThreshold(Number(e.target.value))}
-        style={{ width: "55px", padding: "4px 6px", borderRadius: "6px", border: "1px solid #e5e7eb", fontSize: "13px", fontWeight: "700", color: "#f59e0b", textAlign: "center" }} />
-  </div>
-</div>
+          <label style={{ display: "block", fontSize: "11px", fontWeight: "700", color: "#6b7280", marginBottom: "5px", textTransform: "uppercase" }}>
+            Attendance Threshold: <span style={{ color: "#ef4444" }}>{attThreshold}%</span>
+          </label>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <input type="range" min="0" max="100" value={attThreshold} onChange={e => setAttThreshold(Number(e.target.value))}
+              style={{ width: "120px", accentColor: "#ef4444" }} />
+            <input type="number" min="0" max="100" value={attThreshold} onChange={e => setAttThreshold(Number(e.target.value))}
+              style={{ width: "55px", padding: "4px 6px", borderRadius: "6px", border: "1px solid #e5e7eb", fontSize: "13px", fontWeight: "700", color: "#ef4444", textAlign: "center" }} />
+          </div>
+        </div>
+        <div>
+          <label style={{ display: "block", fontSize: "11px", fontWeight: "700", color: "#6b7280", marginBottom: "5px", textTransform: "uppercase" }}>
+            Marks Threshold: <span style={{ color: "#f59e0b" }}>{marksThreshold}%</span>
+          </label>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <input type="range" min="0" max="100" value={marksThreshold} onChange={e => setMarksThreshold(Number(e.target.value))}
+              style={{ width: "120px", accentColor: "#f59e0b" }} />
+            <input type="number" min="0" max="100" value={marksThreshold} onChange={e => setMarksThreshold(Number(e.target.value))}
+              style={{ width: "55px", padding: "4px 6px", borderRadius: "6px", border: "1px solid #e5e7eb", fontSize: "13px", fontWeight: "700", color: "#f59e0b", textAlign: "center" }} />
+          </div>
+        </div>
         <button onClick={fetchData} style={{ padding: "8px 20px", backgroundColor: "#4f46e5", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", height: "36px" }}>
           Refresh
         </button>
+        <button
+          onClick={() => window.print()}
+          className="no-print"
+          style={{
+            padding: "8px 20px",
+            backgroundColor: "#111827",
+            color: "white",
+            border: "none",
+            borderRadius: "6px",
+            cursor: "pointer",
+            fontWeight: "bold",
+            height: "36px"
+          }}
+        >
+          🖨 Print
+        </button>
+
+
       </div>
 
       {loading && <div style={{ textAlign: "center", padding: "60px", color: "#6b7280" }}>⏳ Analysing class data...</div>}
@@ -172,10 +203,10 @@ function Analytics() {
           </div>
 
           {/* SCATTER PLOT + AT RISK LIST */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "24px" }}>
+          <div className="no-print" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "24px" }}>
 
             {/* SCATTER PLOT */}
-            <div className="card-glass" style={{ padding: "20px", backgroundColor: "white" }}>
+            <div className="card-glass no-print" style={{ padding: "20px", backgroundColor: "white" }}>
               <div style={{ fontSize: "15px", fontWeight: "700", color: "#111827", marginBottom: "4px" }}>Performance Map</div>
               <div style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "12px" }}>Attendance % vs Avg Marks % · click a dot to inspect</div>
               <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto" }}>
@@ -201,7 +232,7 @@ function Analytics() {
 
                 {/* Axis labels */}
                 <text x={W / 2} y={H - 2} fontSize="10" fill="#6b7280" textAnchor="middle">Attendance %</text>
-                <text x={10} y={H / 2} fontSize="10" fill="#6b7280" textAnchor="middle" transform={`rotate(-90, 10, ${H/2})`}>Avg Marks %</text>
+                <text x={10} y={H / 2} fontSize="10" fill="#6b7280" textAnchor="middle" transform={`rotate(-90, 10, ${H / 2})`}>Avg Marks %</text>
 
                 {/* Dots */}
                 {students.map((s) => {
@@ -274,7 +305,7 @@ function Analytics() {
 
                   {/* Exam history - collapsible by term */}
                   {selectedStudent.exam_history.length > 0 && (
-                      <ExamHistorySection examHistory={selectedStudent.exam_history} marksThreshold={marksThreshold} />
+                    <ExamHistorySection examHistory={selectedStudent.exam_history} marksThreshold={marksThreshold} />
                   )}
                 </>
               ) : (
@@ -310,7 +341,7 @@ function Analytics() {
             <div style={{ padding: "16px 20px", borderBottom: "1px solid #f1f5f9" }}>
               <div style={{ fontSize: "15px", fontWeight: "700", color: "#111827" }}>All Students — Class {classStd} {division}</div>
             </div>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <table className="print-table" style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ backgroundColor: "#f9fafb" }}>
                   <th style={{ padding: "10px 16px", textAlign: "left", fontSize: "12px", color: "#6b7280", fontWeight: "700" }}>#</th>
@@ -323,62 +354,62 @@ function Analytics() {
                 </tr>
               </thead>
               <tbody>
-  {(() => {
-    const renderRow = (s, idx) => {
-      const zone = getZone(s);
-      return (
-        <tr key={s.adm} onClick={() => setSelectedStudent(s)}
-          style={{ borderBottom: "1px solid #f9fafb", cursor: "pointer", transition: "background 0.15s" }}
-          onMouseOver={e => e.currentTarget.style.backgroundColor = "#f9fafb"}
-          onMouseOut={e => e.currentTarget.style.backgroundColor = "white"}>
-          <td style={{ padding: "10px 16px", color: "#9ca3af", fontSize: "13px" }}>{idx + 1}</td>
-          <td style={{ padding: "10px 16px", fontWeight: "600", fontSize: "14px", color: "#111827" }}>{s.name}</td>
-          <td style={{ padding: "10px 16px", textAlign: "center" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", justifyContent: "center" }}>
-              <div style={{ width: "60px", height: "6px", backgroundColor: "#f1f5f9", borderRadius: "3px", overflow: "hidden" }}>
-                <div style={{ height: "100%", width: `${s.attendance_pct}%`, backgroundColor: s.attendance_pct >= attThreshold ? "#22c55e" : "#ef4444", borderRadius: "3px" }} />
-              </div>
-              <span style={{ fontSize: "12px", fontWeight: "700", color: s.attendance_pct >= attThreshold ? "#22c55e" : "#ef4444" }}>{s.attendance_pct}%</span>
-            </div>
-          </td>
-          <td style={{ padding: "10px 16px", textAlign: "center" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", justifyContent: "center" }}>
-              <div style={{ width: "60px", height: "6px", backgroundColor: "#f1f5f9", borderRadius: "3px", overflow: "hidden" }}>
-                <div style={{ height: "100%", width: `${s.avg_marks_pct}%`, backgroundColor: s.avg_marks_pct >= marksThreshold ? "#22c55e" : "#ef4444", borderRadius: "3px" }} />
-              </div>
-              <span style={{ fontSize: "12px", fontWeight: "700", color: s.avg_marks_pct >= marksThreshold ? "#22c55e" : "#ef4444" }}>{s.avg_marks_pct}%</span>
-            </div>
-          </td>
-          <td style={{ padding: "10px 16px", textAlign: "center", fontSize: "13px", color: "#6b7280" }}>{s.exam_count}</td>
-          <td style={{ padding: "10px 16px", textAlign: "center", fontSize: "16px", fontWeight: "bold", color: trendColor(s.trend) }}>{trendIcon(s.trend)}</td>
-          <td style={{ padding: "10px 16px", textAlign: "center" }}>
-            <span style={{ padding: "3px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: "700", backgroundColor: zoneBg[zone], color: zoneColors[zone], border: `1px solid ${zoneBorder[zone]}` }}>
-              {zoneLabels[zone]}
-            </span>
-          </td>
-        </tr>
-      );
-    };
-    const boys = students.filter(s => s.gender === "Male");
-    const girls = students.filter(s => s.gender === "Female");
-    return (
-      <>
-        {boys.length > 0 && (
-          <tr><td colSpan="7" style={{ padding: "8px 16px", backgroundColor: "#EFF6FF", color: "#1e40af", fontWeight: "700", fontSize: "12px", borderBottom: "1px solid #BFDBFE" }}>
-            👦 Boys ({boys.length})
-          </td></tr>
-        )}
-        {boys.map((s, idx) => renderRow(s, idx))}
-        {girls.length > 0 && (
-          <tr><td colSpan="7" style={{ padding: "8px 16px", backgroundColor: "#FDF2F8", color: "#9d174d", fontWeight: "700", fontSize: "12px", borderBottom: "1px solid #FBCFE8" }}>
-            👧 Girls ({girls.length})
-          </td></tr>
-        )}
-        {girls.map((s, idx) => renderRow(s, idx))}
-      </>
-    );
-  })()}
-</tbody>
+                {(() => {
+                  const renderRow = (s, idx) => {
+                    const zone = getZone(s);
+                    return (
+                      <tr key={s.adm} onClick={() => setSelectedStudent(s)}
+                        style={{ borderBottom: "1px solid #f9fafb", cursor: "pointer", transition: "background 0.15s" }}
+                        onMouseOver={e => e.currentTarget.style.backgroundColor = "#f9fafb"}
+                        onMouseOut={e => e.currentTarget.style.backgroundColor = "white"}>
+                        <td style={{ padding: "10px 16px", color: "#9ca3af", fontSize: "13px" }}>{idx + 1}</td>
+                        <td style={{ padding: "10px 16px", fontWeight: "600", fontSize: "14px", color: "#111827" }}>{s.name}</td>
+                        <td style={{ padding: "10px 16px", textAlign: "center" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px", justifyContent: "center" }}>
+                            <div style={{ width: "60px", height: "6px", backgroundColor: "#f1f5f9", borderRadius: "3px", overflow: "hidden" }}>
+                              <div style={{ height: "100%", width: `${s.attendance_pct}%`, backgroundColor: s.attendance_pct >= attThreshold ? "#22c55e" : "#ef4444", borderRadius: "3px" }} />
+                            </div>
+                            <span style={{ fontSize: "12px", fontWeight: "700", color: s.attendance_pct >= attThreshold ? "#22c55e" : "#ef4444" }}>{s.attendance_pct}%</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: "10px 16px", textAlign: "center" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px", justifyContent: "center" }}>
+                            <div style={{ width: "60px", height: "6px", backgroundColor: "#f1f5f9", borderRadius: "3px", overflow: "hidden" }}>
+                              <div style={{ height: "100%", width: `${s.avg_marks_pct}%`, backgroundColor: s.avg_marks_pct >= marksThreshold ? "#22c55e" : "#ef4444", borderRadius: "3px" }} />
+                            </div>
+                            <span style={{ fontSize: "12px", fontWeight: "700", color: s.avg_marks_pct >= marksThreshold ? "#22c55e" : "#ef4444" }}>{s.avg_marks_pct}%</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: "10px 16px", textAlign: "center", fontSize: "13px", color: "#6b7280" }}>{s.exam_count}</td>
+                        <td style={{ padding: "10px 16px", textAlign: "center", fontSize: "16px", fontWeight: "bold", color: trendColor(s.trend) }}>{trendIcon(s.trend)}</td>
+                        <td style={{ padding: "10px 16px", textAlign: "center" }}>
+                          <span style={{ padding: "3px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: "700", backgroundColor: zoneBg[zone], color: zoneColors[zone], border: `1px solid ${zoneBorder[zone]}` }}>
+                            {zoneLabels[zone]}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  };
+                  const boys = students.filter(s => s.gender === "Male");
+                  const girls = students.filter(s => s.gender === "Female");
+                  return (
+                    <>
+                      {boys.length > 0 && (
+                        <tr><td colSpan="7" style={{ padding: "8px 16px", backgroundColor: "#EFF6FF", color: "#1e40af", fontWeight: "700", fontSize: "12px", borderBottom: "1px solid #BFDBFE" }}>
+                          👦 Boys ({boys.length})
+                        </td></tr>
+                      )}
+                      {boys.map((s, idx) => renderRow(s, idx))}
+                      {girls.length > 0 && (
+                        <tr><td colSpan="7" style={{ padding: "8px 16px", backgroundColor: "#FDF2F8", color: "#9d174d", fontWeight: "700", fontSize: "12px", borderBottom: "1px solid #FBCFE8" }}>
+                          👧 Girls ({girls.length})
+                        </td></tr>
+                      )}
+                      {girls.map((s, idx) => renderRow(s, idx))}
+                    </>
+                  );
+                })()}
+              </tbody>
             </table>
           </div>
         </>

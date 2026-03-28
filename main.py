@@ -1749,7 +1749,7 @@ async def get_recent_activity():
 async def download_backup():
     original_db = "classflow.db"
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    backup_filename = f"ClassFlow_Backup_{timestamp}.db"
+    backup_filename = f"Tezaura_Backup_{timestamp}.db"
     
     shutil.copy(original_db, backup_filename)
     

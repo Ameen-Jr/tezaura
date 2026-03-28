@@ -1,17 +1,17 @@
 import React, { useState, useRef } from 'react';
-import SafeLottie from './SafeLottie';           
+import SafeLottie from './SafeLottie';
 import backupAnim from './backupAnim.json';
 import API_BASE from '../config';
 
 const BackupManager = () => {
   const [downloading, setDownloading] = useState(false);
   const [restoring, setRestoring] = useState(false);
-  
+
   // Modal States
   const [showModal, setShowModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [confirmText, setConfirmText] = useState("");
-  
+
   const fileInputRef = useRef(null);
 
   // --- DOWNLOAD LOGIC ---
@@ -23,7 +23,7 @@ const BackupManager = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `ClassFlow_Backup_${new Date().toISOString().slice(0,10)}.db`;
+      a.download = `Tezaura_Backup_${new Date().toISOString().slice(0, 10)}.db`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -63,7 +63,7 @@ const BackupManager = () => {
     } catch (e) {
       alert("Error uploading file.");
     }
-    
+
     setRestoring(false);
     setShowModal(false);
     setConfirmText("");
@@ -114,27 +114,27 @@ const BackupManager = () => {
       {/* --- DOWNLOAD SECTION --- */}
       {/* --- DOWNLOAD SECTION (Updated with Animation) --- */}
       <div className="card">
-        
+
         {/* ANIMATION CONTAINER */}
         <div style={{ width: "180px", height: "150px", margin: "0 auto 10px" }}>
-            <SafeLottie animationData={backupAnim} />
+          <SafeLottie animationData={backupAnim} />
         </div>
 
         <h2 style={{ margin: "0 0 10px 0" }}>🛡️ Data Backup</h2>
         <p style={{ color: "#6B7280", marginBottom: "25px", fontSize: "14px" }}>
-            Securely save your entire database to the cloud or local drive.
+          Securely save your entire database to the cloud or local drive.
         </p>
-        
+
         <button className="btn btn-download" onClick={handleDownload} disabled={downloading}>
           {downloading ? "Generating..." : "⬇ Download Backup File"}
         </button>
 
         {/* CRITICAL ADVICE (Unchanged) */}
         <div className="info-text">
-            <strong style={{ color: "#F59E0B" }}>⚠️ CRITICAL ADVICE:</strong>
-            <br/>
-            After downloading, email this file to yourself or save it to a Google Drive folder immediately. 
-            If this computer is formatted, this file is your <strong>only way</strong> to restore the data.
+          <strong style={{ color: "#F59E0B" }}>⚠️ CRITICAL ADVICE:</strong>
+          <br />
+          After downloading, email this file to yourself or save it to a Google Drive folder immediately.
+          If this computer is formatted, this file is your <strong>only way</strong> to restore the data.
         </div>
       </div>
 
@@ -144,15 +144,15 @@ const BackupManager = () => {
         <p style={{ fontSize: "13px", color: "#7F1D1D", marginBottom: "20px" }}>
           Uploading a file here will <strong>REPLACE</strong> all current student data.
         </p>
-        
-        <input 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleFileSelect} 
-            style={{ display: 'none' }} 
-            accept=".db"
+
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileSelect}
+          style={{ display: 'none' }}
+          accept=".db"
         />
-        
+
         <button className="btn btn-restore" onClick={() => fileInputRef.current.click()}>
           ⬆ Upload & Restore Backup
         </button>
@@ -164,36 +164,36 @@ const BackupManager = () => {
           <div className="modal-content">
             <h3 style={{ margin: "0 0 10px 0" }}>⚠️ Confirm Restore</h3>
             <p style={{ fontSize: "14px", color: "#374151" }}>
-              You are about to replace the current database with: 
-              <br/><strong>{selectedFile?.name}</strong>
+              You are about to replace the current database with:
+              <br /><strong>{selectedFile?.name}</strong>
             </p>
 
             <div className="warning-text">
-                This action cannot be undone from the app.<br/>
-                All current data will be overwritten.
+              This action cannot be undone from the app.<br />
+              All current data will be overwritten.
             </div>
 
             <label style={{ fontSize: "12px", fontWeight: "bold", display: "block", marginBottom: "5px" }}>
-                Type "OVERWRITE" to confirm:
+              Type "OVERWRITE" to confirm:
             </label>
-            <input 
-                type="text" 
-                className="input-confirm"
-                placeholder="OVERWRITE"
-                value={confirmText}
-                onChange={(e) => setConfirmText(e.target.value)}
+            <input
+              type="text"
+              className="input-confirm"
+              placeholder="OVERWRITE"
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
             />
 
             <div className="modal-actions">
-                <button className="btn" style={{ background: "#F3F4F6" }} onClick={() => setShowModal(false)}>Cancel</button>
-                <button 
-                    className="btn btn-restore" 
-                    onClick={executeRestore}
-                    disabled={confirmText !== "OVERWRITE" || restoring}
-                    style={{ opacity: confirmText === "OVERWRITE" ? 1 : 0.5 }}
-                >
-                    {restoring ? "Restoring..." : "Yes, Overwrite Data"}
-                </button>
+              <button className="btn" style={{ background: "#F3F4F6" }} onClick={() => setShowModal(false)}>Cancel</button>
+              <button
+                className="btn btn-restore"
+                onClick={executeRestore}
+                disabled={confirmText !== "OVERWRITE" || restoring}
+                style={{ opacity: confirmText === "OVERWRITE" ? 1 : 0.5 }}
+              >
+                {restoring ? "Restoring..." : "Yes, Overwrite Data"}
+              </button>
             </div>
           </div>
         </div>
