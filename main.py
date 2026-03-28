@@ -11,6 +11,10 @@ from typing import List
 from datetime import datetime
 
 # --- DB CONNECTION HELPER ---
+# NEW
+from contextlib import contextmanager
+
+@contextmanager
 def get_db():
     conn = sqlite3.connect(
         "classflow.db",
@@ -18,7 +22,10 @@ def get_db():
         timeout=10
     )
     conn.row_factory = sqlite3.Row
-    return conn
+    try:
+        yield conn
+    finally:
+        conn.close()
 
 app = FastAPI()
 
@@ -994,20 +1001,21 @@ def get_library_history():
         with get_db() as connection:
             cursor = connection.cursor()
             # Fetch records where return_date is NOT NULL (Returned Books)
+            # NEW — add admission_number for reliable keying, raise cap for stats accuracy
             query = """
-                SELECT l.id, s.name, s.class_standard, s.division, l.book_name, l.book_id, l.issue_date, l.return_date
+                SELECT l.id, s.name, s.class_standard, s.division, s.admission_number, l.book_name, l.book_id, l.issue_date, l.return_date
                 FROM library_records l
                 JOIN students s ON l.student_id = s.id
                 WHERE l.return_date IS NOT NULL
                 ORDER BY l.return_date DESC
-                LIMIT 50
+                LIMIT 500
             """
             cursor.execute(query)
             records = []
             for row in cursor.fetchall():
                 records.append({
-                    "id": row[0], "student_name": row[1], "class": row[2], "div": row[3],
-                    "book_name": row[4], "book_id": row[5], "issue_date": row[6], "return_date": row[7]
+                    "id": row[0], "student_name": row[1], "class": row[2], "div": row[3], "adm": row[4],
+                    "book_name": row[5], "book_id": row[6], "issue_date": row[7], "return_date": row[8]
                 })
             return records
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
@@ -1060,18 +1068,21 @@ def promote_students(data: PromotionSchema):
                 except sqlite3.IntegrityError: pass
             
             # 2. Promote Classes (Order is critical: must go top-down to avoid chain promotion)
-            # Step A: Class 8 → 9 first (so they don't get caught by the 9→10 update below)
-            cursor.execute("UPDATE students SET class_standard = '9' WHERE class_standard = '8' AND is_active = 1")
-            # Step B: Class 9 → 10 (original 9s only, 8s already moved to 9 above but is_active check is safe)
+            # NEW — always top-down to prevent chain promotion
+            # Step A: Class 9 → 10 FIRST (before 8s are moved)
             cursor.execute("UPDATE students SET class_standard = '10' WHERE class_standard = '9' AND is_active = 1")
+            # Step B: Class 8 → 9 (safe now, 9s are already gone)
+            cursor.execute("UPDATE students SET class_standard = '9'  WHERE class_standard = '8' AND is_active = 1")
             # Step C: Deactivate graduating Class 10 (must be AFTER 9→10 move)
             cursor.execute("UPDATE students SET is_active = 0 WHERE class_standard = '10'")
             
             if data.reset_fees: cursor.execute("DELETE FROM fees")
 
             # 3. INCREMENT ACADEMIC YEAR
+            # NEW
             cursor.execute("SELECT value FROM system_settings WHERE key='academic_year'")
-            current_year = cursor.fetchone()[0] # e.g., "2025-26"
+            result = cursor.fetchone()
+            current_year = result[0] if result else "2025-26"
             
             try:
                 # Logic: Always produce "YYYY-YY" format e.g. "2025-26" -> "2026-27"

@@ -506,8 +506,8 @@ const SettingsManager = () => {
                             cursor: "pointer",
                             transition: "background 0.2s"
                         }}
-                        onMouseOver={(e) => e.target.style.background = "#DC2626"}
-                        onMouseOut={(e) => e.target.style.background = "#EF4444"}
+                        onMouseOver={(e) => e.currentTarget.style.background = "#DC2626"}
+                        onMouseOut={(e) => e.currentTarget.style.background = "#EF4444"}
                     >
                         Update Password
                     </button>
@@ -526,14 +526,16 @@ function DashboardHome() {
   const [stats, setStats] = useState({ students: 0, demographics: {}, library: 0 });
   const [activities, setActivities] = useState([]);
 
+  // NEW — both fetches run in parallel
   useEffect(() => {
     const loadStats = async () => {
         try {
-            const res = await fetch(`${API_BASE}/dashboard/stats`);
-            const data = await res.json();
-            setStats(data);
-            // Fetch Activities
-            const actRes = await fetch(`${API_BASE}/dashboard/activity`);
+            const [statsRes, actRes] = await Promise.all([
+                fetch(`${API_BASE}/dashboard/stats`),
+                fetch(`${API_BASE}/dashboard/activity`)
+            ]);
+            const statsData = await statsRes.json();
+            setStats(statsData);
             if (actRes.ok) {
                 const actData = await actRes.json();
                 setActivities(actData);
@@ -676,7 +678,7 @@ function DashboardHome() {
                     activities.map((item, index) => {
                         const style = getActivityStyle(item.type); 
                         return (
-                            <div key={index} style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
+                            <div key={`${item.type}-${item.sort_date}-${item.title.slice(0,15)}`} style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
                                 <div style={{ 
                                     minWidth: '40px', height: '40px', borderRadius: '50%', backgroundColor: style.bg, 
                                     display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' 

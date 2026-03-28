@@ -43,10 +43,12 @@ function LibraryManager() {
       if (r.issue_date < academicYearStart) return;
 
       // 2. Create unique key
-      const key = r.student_name; 
+      // NEW
+      const key = r.adm || r.student_name;  // adm now available from updated endpoint
       if (!stats[key]) {
         stats[key] = { 
-            name: r.student_name, 
+            name: r.student_name,
+            adm: r.adm,
             class: r.class_standard || r.class, 
             div: r.division || r.div, 
             count: 0 
@@ -68,16 +70,23 @@ function LibraryManager() {
     fetchHistory(); // <--- Call this immediately so Top Readers loads on start
   }, []); // <--- Change dependency to empty array [] to run once on mount
 
+  // NEW
   const fetchActiveRecords = async () => {
-    const res = await fetch(`${API_BASE}/library/active`);
-    setActiveRecords(await res.json());
+    try {
+      const res = await fetch(`${API_BASE}/library/active`);
+      if (res.ok) setActiveRecords(await res.json());
+    } catch (err) { console.error("Failed to load active records", err); }
   };
 
   const fetchHistory = async () => {
-    const res = await fetch(`${API_BASE}/library/history`);
-    const data = await res.json();
-    setHistoryRecords(data);
-    calculateStats(data); // <--- Add this line to update stats
+    try {
+      const res = await fetch(`${API_BASE}/library/history`);
+      if (res.ok) {
+        const data = await res.json();
+        setHistoryRecords(data);
+        calculateStats(data);
+      }
+    } catch (err) { console.error("Failed to load history", err); }
   };
 
   // --- NEW SEARCH LOGIC ---
