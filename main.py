@@ -1084,20 +1084,30 @@ def promote_students(data: PromotionSchema):
             result = cursor.fetchone()
             current_year = result[0] if result else "2025-26"
             
+            import re as _re
             try:
-                # Logic: Always produce "YYYY-YY" format e.g. "2025-26" -> "2026-27"
                 parts = current_year.split("-")
+                if len(parts) != 2:
+                    raise ValueError("Unexpected format")
                 start = int(parts[0]) + 1
-                end_str = parts[1].strip()
-                # Normalize: whether stored as "26" or "2026", always write back as 2-digit
-                end_full = int(end_str) + 1
-                end_2digit = end_full % 100  # 2027 -> 27, 100 -> 0 (century-safe)
+                # Normalize end: accept both "26" and "2026"
+                end_raw = parts[1].strip()
+                if len(end_raw) == 4:
+                    end_full = int(end_raw) + 1
+                elif len(end_raw) == 2:
+                    end_full = (2000 + int(end_raw)) + 1
+                else:
+                    raise ValueError("Unrecognised year suffix")
+                end_2digit = end_full % 100
                 new_year = f"{start}-{end_2digit:02d}"
+                # Validate output format before writing
+                if not _re.match(r'^\d{4}-\d{2}$', new_year):
+                    raise ValueError("Output format invalid")
                 cursor.execute("UPDATE system_settings SET value = ? WHERE key='academic_year'", (new_year,))
             except (ValueError, IndexError) as e:
-                print(f"⚠️ Could not increment academic year: {e}")
-                new_year = current_year # Keep old value if format is unexpected
-
+                print(f"⚠️ Could not increment academic year: {e}. Keeping: {current_year}")
+                new_year = current_year
+                
             connection.commit()
             return {"status": "success", "message": f"Promotion Complete! Academic Year advanced to {new_year}."}
             
@@ -1137,6 +1147,10 @@ def discontinue_batch(data: BatchDiscontinueSchema):
 @app.get("/reports/discontinued-years")
 def get_discontinued_years():
     try:
+        # Auto-backup before any promotion runs
+        from datetime import date as _date
+        _stamp = _date.today().strftime("%Y-%m-%d")
+        shutil.copy("classflow.db", f"pre_promotion_backup_{_stamp}.db")
         with get_db() as connection:
             cursor = connection.cursor()
             # Extract just the Year (YYYY) from date_left (YYYY-MM-DD)
