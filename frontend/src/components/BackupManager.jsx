@@ -6,6 +6,10 @@ import API_BASE from '../config';
 const BackupManager = () => {
   const [downloading, setDownloading] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [driveStatus, setDriveStatus] = useState({ folder_configured: false, folder_id: "", last_backup: "Never", key_file_present: false });
+  const [driveFolderId, setDriveFolderId] = useState("");
+  const [driveUploading, setDriveUploading] = useState(false);
+  const [driveMessage, setDriveMessage] = useState("");
 
   // Modal States
   const [showModal, setShowModal] = useState(false);
@@ -14,7 +18,58 @@ const BackupManager = () => {
 
   const fileInputRef = useRef(null);
 
+  useEffect(() => {
+    fetch(`${API_BASE}/settings/drive-status`)
+      .then(res => res.json())
+      .then(data => {
+        setDriveStatus(data);
+        setDriveFolderId(data.folder_id || "");
+      })
+      .catch(() => { });
+  }, []);
+
   // --- DOWNLOAD LOGIC ---
+
+  const saveDriveFolder = async () => {
+    if (!driveFolderId.trim()) return;
+    try {
+      const res = await fetch(`${API_BASE}/settings/drive-folder`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folder_id: driveFolderId.trim() })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setDriveMessage("✅ Folder ID saved!");
+        setDriveStatus(prev => ({ ...prev, folder_configured: true, folder_id: driveFolderId.trim() }));
+      } else {
+        setDriveMessage("❌ Failed to save.");
+      }
+    } catch {
+      setDriveMessage("❌ Connection error.");
+    }
+    setTimeout(() => setDriveMessage(""), 3000);
+  };
+
+  const runDriveBackupNow = async () => {
+    setDriveUploading(true);
+    setDriveMessage("⏳ Uploading to Google Drive...");
+    try {
+      const res = await fetch(`${API_BASE}/backup/drive-now`, { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        setDriveMessage(`✅ ${data.message}`);
+        setDriveStatus(prev => ({ ...prev, last_backup: new Date().toLocaleString() }));
+      } else {
+        setDriveMessage(`❌ ${data.detail}`);
+      }
+    } catch {
+      setDriveMessage("❌ Connection error.");
+    }
+    setDriveUploading(false);
+    setTimeout(() => setDriveMessage(""), 6000);
+  };
+
   const handleDownload = async () => {
     setDownloading(true);
     try {
@@ -156,6 +211,111 @@ const BackupManager = () => {
         <button className="btn btn-restore" onClick={() => fileInputRef.current.click()}>
           ⬆ Upload & Restore Backup
         </button>
+      </div>
+
+      {/* --- GOOGLE DRIVE SECTION --- */}
+      <div className="card" style={{ width: "600px" }}>
+        <h3 style={{ margin: "0 0 5px 0" }}>☁️ Google Drive Auto-Backup</h3>
+        <p style={{ fontSize: "13px", color: "#6B7280", marginBottom: "5px" }}>
+          Uploads automatically every 7 days when the app starts. Backups older than 90 days are deleted from Drive automatically.
+        </p>
+        <p style={{ fontSize: "13px", color: "#6B7280", marginBottom: "20px" }}>
+          Last backup: <strong>{driveStatus.last_backup}</strong>
+        </p>
+
+        {/* Key file status indicator */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: "8px",
+          padding: "8px 12px", borderRadius: "6px", marginBottom: "16px",
+          backgroundColor: driveStatus.key_file_present ? "#ECFDF5" : "#FEF9C3",
+          border: `1px solid ${driveStatus.key_file_present ? "#A7F3D0" : "#FDE68A"}`
+        }}>
+          <span style={{ fontSize: "16px" }}>{driveStatus.key_file_present ? "✅" : "⚠️"}</span>
+          <span style={{ fontSize: "13px", color: driveStatus.key_file_present ? "#065F46" : "#92400E", fontWeight: "bold" }}>
+            {driveStatus.key_file_present
+              ? "tezaura-drive-key.json found"
+              : "tezaura-drive-key.json not found — place it next to main.py"}
+          </span>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <div>
+            <label style={{ fontSize: "12px", fontWeight: "bold", display: "block", marginBottom: "5px", color: "#374151" }}>
+              Google Drive Folder ID
+            </label>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <input
+                type="text"
+                value={driveFolderId}
+                onChange={e => setDriveFolderId(e.target.value)}
+                placeholder="e.g. 1A2B3C4D5E6F7G8H9I0J"
+                style={{
+                  flex: 1, padding: "8px 12px", borderRadius: "6px",
+                  border: "1px solid #E5E7EB", fontSize: "13px", fontFamily: "monospace"
+                }}
+              />
+              <button
+                onClick={saveDriveFolder}
+                style={{
+                  padding: "8px 16px", backgroundColor: "#ECFDF5",
+                  color: "#059669", border: "1px solid #10B981",
+                  borderRadius: "6px", cursor: "pointer", fontWeight: "bold",
+                  whiteSpace: "nowrap"
+                }}
+              >
+                Save
+              </button>
+            </div>
+            <p style={{ fontSize: "11px", color: "#9CA3AF", marginTop: "5px", marginBottom: 0 }}>
+              Open the Drive folder in browser → copy the ID from the URL: drive.google.com/drive/folders/<strong>THIS_PART</strong>
+            </p>
+          </div>
+
+          {driveStatus.folder_configured && driveStatus.key_file_present && (
+            <button
+              onClick={runDriveBackupNow}
+              disabled={driveUploading}
+              style={{
+                padding: "10px", backgroundColor: driveUploading ? "#D1FAE5" : "#ECFDF5",
+                color: "#059669", border: "1px solid #10B981",
+                borderRadius: "6px", cursor: driveUploading ? "not-allowed" : "pointer",
+                fontWeight: "bold", fontSize: "14px"
+              }}
+            >
+              {driveUploading ? "⏳ Uploading..." : "⬆ Upload to Drive Now"}
+            </button>
+          )}
+
+          {driveMessage && (
+            <div style={{
+              padding: "10px 14px", borderRadius: "6px", fontSize: "13px", fontWeight: "bold",
+              backgroundColor: driveMessage.includes("✅") ? "#ECFDF5" : driveMessage.includes("⏳") ? "#EFF6FF" : "#FEF2F2",
+              color: driveMessage.includes("✅") ? "#065F46" : driveMessage.includes("⏳") ? "#1E40AF" : "#B91C1C",
+              border: `1px solid ${driveMessage.includes("✅") ? "#A7F3D0" : driveMessage.includes("⏳") ? "#BFDBFE" : "#FECACA"}`
+            }}>
+              {driveMessage}
+            </div>
+          )}
+
+          {/* Setup instructions collapsible */}
+          <details style={{ fontSize: "12px", color: "#6B7280" }}>
+            <summary style={{ cursor: "pointer", fontWeight: "bold", color: "#374151", marginBottom: "6px" }}>
+              ⚙️ First-time setup instructions
+            </summary>
+            <div style={{
+              marginTop: "8px", padding: "12px", backgroundColor: "#F9FAFB",
+              borderRadius: "6px", lineHeight: "1.8", border: "1px solid #E5E7EB"
+            }}>
+              <strong>1.</strong> Run in terminal: <code style={{ backgroundColor: "#E5E7EB", padding: "1px 6px", borderRadius: "3px" }}>pip install google-api-python-client google-auth</code><br />
+              <strong>2.</strong> Go to <a href="https://console.cloud.google.com" target="_blank" rel="noreferrer" style={{ color: "#3B82F6" }}>console.cloud.google.com</a> → New Project<br />
+              <strong>3.</strong> Enable <strong>Google Drive API</strong> for the project<br />
+              <strong>4.</strong> Go to IAM → Service Accounts → Create → Download JSON key<br />
+              <strong>5.</strong> Rename downloaded file to <code style={{ backgroundColor: "#E5E7EB", padding: "1px 6px", borderRadius: "3px" }}>tezaura-drive-key.json</code><br />
+              <strong>6.</strong> Place it in the same folder as <code style={{ backgroundColor: "#E5E7EB", padding: "1px 6px", borderRadius: "3px" }}>main.py</code><br />
+              <strong>7.</strong> In Google Drive, create a folder → Share it with the service account email → paste the folder ID above
+            </div>
+          </details>
+        </div>
       </div>
 
       {/* --- CONFIRMATION MODAL --- */}

@@ -29,6 +29,14 @@ def get_db():
 
 app = FastAPI()
 
+@app.on_event("startup")
+async def startup_auto_backup():
+    try:
+        from drive_backup import check_and_run_weekly
+        check_and_run_weekly()
+    except Exception as e:
+        print(f"Drive backup startup check skipped: {e}")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -1886,6 +1894,56 @@ def get_class_performance(class_std: str, division: str = ""):
                 })
 
             return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class DriveSettingsSchema(BaseModel):
+    folder_id: str
+
+@app.get("/settings/drive-status")
+def get_drive_status():
+    try:
+        with get_db() as connection:
+            cursor = connection.cursor()
+            cursor.execute("SELECT value FROM system_settings WHERE key='drive_folder_id'")
+            folder = cursor.fetchone()
+            cursor.execute("SELECT value FROM system_settings WHERE key='last_drive_backup'")
+            last = cursor.fetchone()
+            key_exists = os.path.exists('tezaura-drive-key.json')
+            return {
+                "folder_configured": bool(folder and folder[0]),
+                "folder_id": folder[0] if folder else "",
+                "last_backup": last[0] if last else "Never",
+                "key_file_present": key_exists
+            }
+    except Exception as e:
+        return {"folder_configured": False, "folder_id": "", "last_backup": "Never", "key_file_present": False}
+
+@app.post("/settings/drive-folder")
+def save_drive_folder(data: DriveSettingsSchema):
+    try:
+        with get_db() as connection:
+            cursor = connection.cursor()
+            cursor.execute("""
+                INSERT INTO system_settings (key, value) VALUES ('drive_folder_id', ?)
+                ON CONFLICT(key) DO UPDATE SET value = excluded.value
+            """, (data.folder_id.strip(),))
+            connection.commit()
+            return {"status": "success", "message": "Folder ID saved."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/backup/drive-now")
+def backup_to_drive_now():
+    try:
+        from drive_backup import upload_backup_to_drive
+        result = upload_backup_to_drive()
+        if result["success"]:
+            return {"status": "success", "message": result["message"]}
+        else:
+            raise HTTPException(status_code=500, detail=result["message"])
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
