@@ -132,8 +132,10 @@ class DiscontinueSchema(BaseModel):
     date_left: str
 
 class PromotionSchema(BaseModel):
-    graduation_year: str # e.g. "2025"
-    reset_fees: bool     # true/false   
+    graduation_year: str
+    reset_fees: bool = False
+    reset_marks: bool = False
+    reset_attendance: bool = False  
 
 class FeeSettingsSchema(BaseModel):
     fee_class_8: int
@@ -1077,6 +1079,12 @@ def promote_students(data: PromotionSchema):
             cursor.execute("UPDATE students SET is_active = 0 WHERE class_standard = '10'")
             
             if data.reset_fees: cursor.execute("DELETE FROM fees")
+            if data.reset_marks:
+                cursor.execute("DELETE FROM marks")
+                cursor.execute("DELETE FROM exam_subjects")
+                cursor.execute("DELETE FROM exams")
+            if data.reset_attendance: cursor.execute("DELETE FROM attendance")
+            
 
             # 3. INCREMENT ACADEMIC YEAR
             # NEW
