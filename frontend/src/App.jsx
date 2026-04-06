@@ -362,19 +362,21 @@ const LoginScreen = ({ onLogin }) => {
           <img
             src="/assets/images/logo-login-dark.png"
             alt="Tezaura"
-            style={{ width: "350px", marginBottom: "6px",
- display: "block" }}
+            style={{
+              width: "350px", marginBottom: "6px",
+              display: "block"
+            }}
           />
-        <div
-  style={{
-    fontSize: "10px",
-    letterSpacing: "4px",
-    opacity: 0.55,
-    marginBottom: "12px"
-  }}
->
-  UNIVERSAL EDITION
-</div>
+          <div
+            style={{
+              fontSize: "10px",
+              letterSpacing: "4px",
+              opacity: 0.55,
+              marginBottom: "12px"
+            }}
+          >
+            UNIVERSAL EDITION
+          </div>
 
           <h2>SECURE ACCESS</h2>
 
@@ -402,123 +404,123 @@ const LoginScreen = ({ onLogin }) => {
 // --- 3. SETTINGS & SECURITY COMPONENT ---
 // --- 3. SETTINGS & SECURITY COMPONENT (Animation in Top Right) ---
 const SettingsManager = () => {
-    const [currentPass, setCurrentPass] = useState("");
-    const [newPass, setNewPass] = useState("");
-    const [confirmPass, setConfirmPass] = useState("");
-    
-    const handleChangePassword = async () => {
-        const storedHash = localStorage.getItem("adminPasswordHash");
-        const defaultHash = await hashPassword("admin@123");
-        const validHash = storedHash || defaultHash;
-        const currentInputHash = await hashPassword(currentPass);
+  const [currentPass, setCurrentPass] = useState("");
+  const [newPass, setNewPass] = useState("");
+  const [confirmPass, setConfirmPass] = useState("");
 
-        if (currentInputHash !== validHash) {
-            alert("❌ Current password is incorrect.");
-            return;
-        }
-        if (newPass.length < 4) {
-            alert("⚠️ New password is too short.");
-            return;
-        }
-        if (newPass !== confirmPass) {
-            alert("⚠️ New passwords do not match.");
-            return;
-        }
-        
-        const newHash = await hashPassword(newPass);
-        localStorage.setItem("adminPasswordHash", newHash);
-        localStorage.removeItem("adminPassword"); // Clean up old plain text key
-        alert("✅ Password Updated Successfully!\n\nPlease use the new password next time.");
-        setCurrentPass(""); setNewPass(""); setConfirmPass("");
-    };
+  const handleChangePassword = async () => {
+    const storedHash = localStorage.getItem("adminPasswordHash");
+    const defaultHash = await hashPassword("admin@123");
+    const validHash = storedHash || defaultHash;
+    const currentInputHash = await hashPassword(currentPass);
 
-    return (
-        <div style={{ maxWidth: "700px", margin: "0 auto", padding: "30px 20px" }}>
-            
-            {/* HEADER AREA: Title Left, Animation Right */}
-            <div style={{ 
-                display: "flex", 
-                justifyContent: "space-between", 
-                alignItems: "center", 
-                marginBottom: "10px",
-                borderBottom: "1px solid #E5E7EB",
-                paddingBottom: "10px"
-            }}>
-                <div>
-                    <h2 style={{ margin: "0 0 5px 0", color: "#111827" }}>⚙️ System Settings</h2>
-                    <p style={{ margin: 0, fontSize: "13px", color: "#6B7280" }}>Manage security and configurations</p>
-                </div>
-                
-                {/* ANIMATION (Maximum Size) */}
-<div style={{ width: "280px", height: "220px", marginTop: "-40px", marginRight: "-20px" }}>
-     <SafeLottie animationData={settingsAnim} />
-</div>
-            </div>
-            
-            {/* FORM AREA */}
-            <div style={{ background: "#FEF2F2", border: "1px solid #FCA5A5", padding: "25px", borderRadius: "12px", marginTop: "20px" }}>
-                <h3 style={{ margin: "0 0 20px 0", color: "#B91C1C", display: "flex", alignItems: "center", gap: "10px", fontSize: "16px" }}>
-                    🔐 Security: Change Password
-                </h3>
-                
-                <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-                    <div>
-                        <label style={{ display: "block", fontSize: "12px", fontWeight: "bold", marginBottom: "5px", color: "#7F1D1D" }}>Current Password</label>
-                        <input 
-                            type="password" 
-                            value={currentPass} 
-                            onChange={e => setCurrentPass(e.target.value)} 
-                            style={{ width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #FECACA", outline: "none", background: "white" }} 
-                        />
-                    </div>
-                    
-                    <div style={{ display: "flex", gap: "15px" }}>
-                        <div style={{ flex: 1 }}>
-                            <label style={{ display: "block", fontSize: "12px", fontWeight: "bold", marginBottom: "5px", color: "#7F1D1D" }}>New Password</label>
-                            <input 
-                                type="password" 
-                                value={newPass} 
-                                onChange={e => setNewPass(e.target.value)} 
-                                style={{ width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #FECACA", outline: "none", background: "white" }} 
-                            />
-                        </div>
-                        <div style={{ flex: 1 }}>
-                            <label style={{ display: "block", fontSize: "12px", fontWeight: "bold", marginBottom: "5px", color: "#7F1D1D" }}>Confirm New</label>
-                            <input 
-                                type="password" 
-                                value={confirmPass} 
-                                onChange={e => setConfirmPass(e.target.value)} 
-                                style={{ width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #FECACA", outline: "none", background: "white" }} 
-                            />
-                        </div>
-                    </div>
-                    
-                    <button 
-                        onClick={handleChangePassword}
-                        style={{ 
-                            background: "#EF4444", 
-                            color: "white", 
-                            padding: "12px", 
-                            border: "none", 
-                            marginTop: "10px", 
-                            borderRadius: "8px",
-                            fontWeight: "bold",
-                            cursor: "pointer",
-                            transition: "background 0.2s"
-                        }}
-                        onMouseOver={(e) => e.currentTarget.style.background = "#DC2626"}
-                        onMouseOut={(e) => e.currentTarget.style.background = "#EF4444"}
-                    >
-                        Update Password
-                    </button>
-                </div>
-            </div>
-            
-            <p style={{ marginTop: "30px", fontSize: "13px", color: "#9CA3AF", textAlign: "center" }}>
-                Tezaura Security Protocol • SHA-256 Hashed
-            </p>
+    if (currentInputHash !== validHash) {
+      alert("❌ Current password is incorrect.");
+      return;
+    }
+    if (newPass.length < 4) {
+      alert("⚠️ New password is too short.");
+      return;
+    }
+    if (newPass !== confirmPass) {
+      alert("⚠️ New passwords do not match.");
+      return;
+    }
+
+    const newHash = await hashPassword(newPass);
+    localStorage.setItem("adminPasswordHash", newHash);
+    localStorage.removeItem("adminPassword"); // Clean up old plain text key
+    alert("✅ Password Updated Successfully!\n\nPlease use the new password next time.");
+    setCurrentPass(""); setNewPass(""); setConfirmPass("");
+  };
+
+  return (
+    <div style={{ maxWidth: "700px", margin: "0 auto", padding: "30px 20px" }}>
+
+      {/* HEADER AREA: Title Left, Animation Right */}
+      <div style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: "10px",
+        borderBottom: "1px solid #E5E7EB",
+        paddingBottom: "10px"
+      }}>
+        <div>
+          <h2 style={{ margin: "0 0 5px 0", color: "#111827" }}>⚙️ System Settings</h2>
+          <p style={{ margin: 0, fontSize: "13px", color: "#6B7280" }}>Manage security and configurations</p>
         </div>
-    );
+
+        {/* ANIMATION (Maximum Size) */}
+        <div style={{ width: "280px", height: "220px", marginTop: "-40px", marginRight: "-20px" }}>
+          <SafeLottie animationData={settingsAnim} />
+        </div>
+      </div>
+
+      {/* FORM AREA */}
+      <div style={{ background: "#FEF2F2", border: "1px solid #FCA5A5", padding: "25px", borderRadius: "12px", marginTop: "20px" }}>
+        <h3 style={{ margin: "0 0 20px 0", color: "#B91C1C", display: "flex", alignItems: "center", gap: "10px", fontSize: "16px" }}>
+          🔐 Security: Change Password
+        </h3>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
+          <div>
+            <label style={{ display: "block", fontSize: "12px", fontWeight: "bold", marginBottom: "5px", color: "#7F1D1D" }}>Current Password</label>
+            <input
+              type="password"
+              value={currentPass}
+              onChange={e => setCurrentPass(e.target.value)}
+              style={{ width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #FECACA", outline: "none", background: "white" }}
+            />
+          </div>
+
+          <div style={{ display: "flex", gap: "15px" }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: "block", fontSize: "12px", fontWeight: "bold", marginBottom: "5px", color: "#7F1D1D" }}>New Password</label>
+              <input
+                type="password"
+                value={newPass}
+                onChange={e => setNewPass(e.target.value)}
+                style={{ width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #FECACA", outline: "none", background: "white" }}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: "block", fontSize: "12px", fontWeight: "bold", marginBottom: "5px", color: "#7F1D1D" }}>Confirm New</label>
+              <input
+                type="password"
+                value={confirmPass}
+                onChange={e => setConfirmPass(e.target.value)}
+                style={{ width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #FECACA", outline: "none", background: "white" }}
+              />
+            </div>
+          </div>
+
+          <button
+            onClick={handleChangePassword}
+            style={{
+              background: "#EF4444",
+              color: "white",
+              padding: "12px",
+              border: "none",
+              marginTop: "10px",
+              borderRadius: "8px",
+              fontWeight: "bold",
+              cursor: "pointer",
+              transition: "background 0.2s"
+            }}
+            onMouseOver={(e) => e.currentTarget.style.background = "#DC2626"}
+            onMouseOut={(e) => e.currentTarget.style.background = "#EF4444"}
+          >
+            Update Password
+          </button>
+        </div>
+      </div>
+
+      <p style={{ marginTop: "30px", fontSize: "13px", color: "#9CA3AF", textAlign: "center" }}>
+        Tezaura Security Protocol • SHA-256 Hashed
+      </p>
+    </div>
+  );
 };
 
 // --- DASHBOARD HOME WIDGET (Final Version) ---
@@ -529,40 +531,40 @@ function DashboardHome() {
   // NEW — both fetches run in parallel
   useEffect(() => {
     const loadStats = async () => {
-        try {
-            const [statsRes, actRes] = await Promise.all([
-                fetch(`${API_BASE}/dashboard/stats`),
-                fetch(`${API_BASE}/dashboard/activity`)
-            ]);
-            const statsData = await statsRes.json();
-            setStats(statsData);
-            if (actRes.ok) {
-                const actData = await actRes.json();
-                setActivities(actData);
-            }
-        } catch (e) { console.error("Stats error", e); }
+      try {
+        const [statsRes, actRes] = await Promise.all([
+          fetch(`${API_BASE}/dashboard/stats`),
+          fetch(`${API_BASE}/dashboard/activity`)
+        ]);
+        const statsData = await statsRes.json();
+        setStats(statsData);
+        if (actRes.ok) {
+          const actData = await actRes.json();
+          setActivities(actData);
+        }
+      } catch (e) { console.error("Stats error", e); }
     };
     loadStats();
   }, []);
 
   // Helper to choose the right icon/color based on data type
   const getActivityStyle = (type) => {
-      switch(type) {
-          case 'fee': return { icon: '💰', bg: '#ECFDF5' };           // Green
-          case 'admission': return { icon: '🎓', bg: '#EFF6FF' };     // Blue
-          case 'library_issue': return { icon: '📖', bg: '#FFF7ED' }; // Orange
-          case 'library_return': return { icon: '📗', bg: '#F0FDF4' };// Light Green
-          case 'absent': return { icon: '🚨', bg: '#FEF2F2' };        // Red (Alert)
-          case 'exam': return { icon: '📝', bg: '#F5F3FF' };          // Purple
-          default: return { icon: '🔔', bg: '#F3F4F6' };              // Grey
-      }
+    switch (type) {
+      case 'fee': return { icon: '💰', bg: '#ECFDF5' };           // Green
+      case 'admission': return { icon: '🎓', bg: '#EFF6FF' };     // Blue
+      case 'library_issue': return { icon: '📖', bg: '#FFF7ED' }; // Orange
+      case 'library_return': return { icon: '📗', bg: '#F0FDF4' };// Light Green
+      case 'absent': return { icon: '🚨', bg: '#FEF2F2' };        // Red (Alert)
+      case 'exam': return { icon: '📝', bg: '#F5F3FF' };          // Purple
+      default: return { icon: '🔔', bg: '#F3F4F6' };              // Grey
+    }
   };
 
   return (
     <div style={{ animation: "fadeIn 0.5s" }}>
-        
-        {/* ANIMATION STYLES (Pulse Effect) */}
-        <style>{`
+
+      {/* ANIMATION STYLES (Pulse Effect) */}
+      <style>{`
           @keyframes pulse-green {
             0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
             70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
@@ -575,137 +577,137 @@ function DashboardHome() {
           }
         `}</style>
 
-        {/* WELCOME HEADER WITH MASCOT */}
-<div style={{ display: "flex", alignItems: "center", gap: "15px", marginBottom: "25px" }}>
-    {/* Mascot floats here */}
-    <div style={{ transform: "scale(1.2)" }}>
-       <InteractiveMascot />
-    </div>
-    
-    <div>
-       <h2 style={{ fontSize: "28px", margin: 0, color: "#111827" }}>
-         Welcome Back, Admin!
-       </h2>
-       <p style={{ margin: "4px 0 0", color: "#6B7280", fontSize: "14px" }}>
-         Tezaura Systems are online and monitoring academic logistics.
-       </p>
-    </div>
-</div>
-        
-        <div
-  style={{
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-    gap: "20px",
-    marginBottom: "20px",   // 🔽 reduce vertical gap
-    alignItems: "stretch"  // 🔒 equal heights
-  }}
->
+      {/* WELCOME HEADER WITH MASCOT */}
+      <div style={{ display: "flex", alignItems: "center", gap: "15px", marginBottom: "25px" }}>
+        {/* Mascot floats here */}
+        <div style={{ transform: "scale(1.2)" }}>
+          <InteractiveMascot />
+        </div>
 
-            
-            {/* CARD 1: TOTAL STRENGTH */}
-            <div className="card-glass" style={{ padding: "18px", borderLeft: "5px solid #4F46E5", position: "relative", overflow: "hidden" }}>
-                <div style={{ color: "#6B7280", fontSize: "14px", fontWeight: "bold", textTransform: "uppercase" }}>Total Active Students</div>
-                <div style={{ fontSize: "100px", fontWeight: "800", color: "#111827", marginTop: "5px" }}>{stats.students}</div>
-                <div style={{ position: "absolute", right: "-10px", bottom: "-10px", fontSize: "80px", opacity: "0.1", transform: "rotate(-15deg)" }}>🎓</div>
+        <div>
+          <h2 style={{ fontSize: "28px", margin: 0, color: "#111827" }}>
+            Welcome Back, Admin!
+          </h2>
+          <p style={{ margin: "4px 0 0", color: "#6B7280", fontSize: "14px" }}>
+            Tezaura Systems are online and monitoring academic logistics.
+          </p>
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+          gap: "20px",
+          marginBottom: "20px",   // 🔽 reduce vertical gap
+          alignItems: "stretch"  // 🔒 equal heights
+        }}
+      >
+
+
+        {/* CARD 1: TOTAL STRENGTH */}
+        <div className="card-glass" style={{ padding: "18px", borderLeft: "5px solid #4F46E5", position: "relative", overflow: "hidden" }}>
+          <div style={{ color: "#6B7280", fontSize: "14px", fontWeight: "bold", textTransform: "uppercase" }}>Total Active Students</div>
+          <div style={{ fontSize: "100px", fontWeight: "800", color: "#111827", marginTop: "5px" }}>{stats.students}</div>
+          <div style={{ position: "absolute", right: "-10px", bottom: "-10px", fontSize: "80px", opacity: "0.1", transform: "rotate(-15deg)" }}>🎓</div>
+        </div>
+
+        {/* CARD 2: DEMOGRAPHICS (New Feature) */}
+        <div className="card-glass" style={{ padding: "16px", borderLeft: "5px solid #F59E0B" }}>
+          <div style={{ color: "#6B7280", fontSize: "14px", fontWeight: "bold", textTransform: "uppercase", marginBottom: "15px" }}>Class-wise Strength</div>
+          <table style={{ width: "100%", fontSize: "14px", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ color: "#9CA3AF", textAlign: "left", fontSize: "12px", borderBottom: "1px solid #eee" }}>
+                <th style={{ paddingBottom: "5px" }}>Class</th>
+                <th style={{ paddingBottom: "5px", color: "#3B82F6" }}>Boys</th>
+                <th style={{ paddingBottom: "5px", color: "#EC4899" }}>Girls</th>
+                <th style={{ paddingBottom: "5px", textAlign: "right" }}>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.keys(stats.demographics).length === 0 ? (
+                <tr><td colSpan="4" style={{ padding: "10px", textAlign: "center", color: "#ccc" }}>No Data</td></tr>
+              ) : (
+                Object.entries(stats.demographics).map(([cls, count]) => (
+                  <tr key={cls} style={{ borderBottom: "1px solid #f9f9f9" }}>
+                    <td style={{ padding: "8px 0", fontWeight: "bold" }}>Class {cls}</td>
+                    <td style={{ padding: "8px 0", color: "#3B82F6", fontWeight: "600" }}>{count.Male}</td>
+                    <td style={{ padding: "8px 0", color: "#EC4899", fontWeight: "600" }}>{count.Female}</td>
+                    <td style={{ padding: "8px 0", textAlign: "right", fontWeight: "bold" }}>{count.Male + count.Female}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* CARD 3: SYSTEM STATUS (Animated) */}
+        <div className="card-glass" style={{ padding: "18px", borderLeft: "5px solid #10B981", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+          <div style={{ color: "#6B7280", fontSize: "14px", fontWeight: "bold", textTransform: "uppercase" }}>System Health</div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "15px", marginTop: "15px" }}>
+            {/* The Pulsing Dot */}
+            <div style={{
+              width: "15px", height: "15px", backgroundColor: "#10B981", borderRadius: "50%",
+              animation: "pulse-green 2s infinite"
+            }}></div>
+
+            <div style={{ animation: "float 3s ease-in-out infinite" }}>
+              <div style={{ fontSize: "20px", fontWeight: "700", color: "#065F46" }}>Online & Live</div>
+              <div style={{ fontSize: "12px", color: "#10B981" }}>Database Connected</div>
             </div>
+          </div>
+        </div>
+      </div>
 
-            {/* CARD 2: DEMOGRAPHICS (New Feature) */}
-            <div className="card-glass" style={{ padding: "16px", borderLeft: "5px solid #F59E0B" }}>
-                <div style={{ color: "#6B7280", fontSize: "14px", fontWeight: "bold", textTransform: "uppercase", marginBottom: "15px" }}>Class-wise Strength</div>
-                <table style={{ width: "100%", fontSize: "14px", borderCollapse: "collapse" }}>
-                    <thead>
-                        <tr style={{ color: "#9CA3AF", textAlign: "left", fontSize: "12px", borderBottom: "1px solid #eee" }}>
-                            <th style={{ paddingBottom: "5px" }}>Class</th>
-                            <th style={{ paddingBottom: "5px", color: "#3B82F6" }}>Boys</th>
-                            <th style={{ paddingBottom: "5px", color: "#EC4899" }}>Girls</th>
-                            <th style={{ paddingBottom: "5px", textAlign: "right" }}>Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {Object.keys(stats.demographics).length === 0 ? (
-                            <tr><td colSpan="4" style={{ padding: "10px", textAlign: "center", color: "#ccc" }}>No Data</td></tr>
-                        ) : (
-                            Object.entries(stats.demographics).map(([cls, count]) => (
-                                <tr key={cls} style={{ borderBottom: "1px solid #f9f9f9" }}>
-                                    <td style={{ padding: "8px 0", fontWeight: "bold" }}>Class {cls}</td>
-                                    <td style={{ padding: "8px 0", color: "#3B82F6", fontWeight: "600" }}>{count.Male}</td>
-                                    <td style={{ padding: "8px 0", color: "#EC4899", fontWeight: "600" }}>{count.Female}</td>
-                                    <td style={{ padding: "8px 0", textAlign: "right", fontWeight: "bold" }}>{count.Male + count.Female}</td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            </div>
+      {/* --- RECENT ACTIVITY TIMELINE (Beautiful & Useful) --- */}
+      <div className="card-glass" style={{
+        backgroundColor: 'white',
+        borderRadius: '15px',
+        padding: '25px',
+        boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
+        flex: 1, // Fills remaining height
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
+        <h3 style={{ margin: '0 0 20px 0', color: '#111827', fontSize: '18px', fontWeight: 'bold' }}>
+          ⚡ Recent Activity
+        </h3>
 
-            {/* CARD 3: SYSTEM STATUS (Animated) */}
-            <div className="card-glass" style={{ padding: "18px", borderLeft: "5px solid #10B981", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                <div style={{ color: "#6B7280", fontSize: "14px", fontWeight: "bold", textTransform: "uppercase" }}>System Health</div>
-                
-                <div style={{ display: "flex", alignItems: "center", gap: "15px", marginTop: "15px" }}>
-                    {/* The Pulsing Dot */}
-                    <div style={{ 
-                        width: "15px", height: "15px", backgroundColor: "#10B981", borderRadius: "50%",
-                        animation: "pulse-green 2s infinite" 
-                    }}></div>
-                    
-                    <div style={{ animation: "float 3s ease-in-out infinite" }}>
-                        <div style={{ fontSize: "20px", fontWeight: "700", color: "#065F46" }}>Online & Live</div>
-                        <div style={{ fontSize: "12px", color: "#10B981" }}>Database Connected</div>
-                    </div>
+        <div style={{ overflowY: 'auto', paddingRight: '10px' }}>
+          {activities.length > 0 ? (
+            activities.map((item, index) => {
+              const style = getActivityStyle(item.type);
+              return (
+                <div key={`${item.type}-${item.sort_date}-${item.title.slice(0, 15)}-${index}`} style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
+                  <div style={{
+                    minWidth: '40px', height: '40px', borderRadius: '50%', backgroundColor: style.bg,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px'
+                  }}>{style.icon}</div>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#374151' }}>{item.title}</div>
+                    <div style={{ fontSize: '13px', color: '#6B7280' }}>{item.message}</div>
+                    <div style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '4px' }}>{item.timestamp}</div>
+                  </div>
                 </div>
-            </div>
+              );
+            })
+          ) : (
+            <div style={{ textAlign: 'center', color: '#9CA3AF', padding: '20px' }}>No recent activity.</div>
+          )}
         </div>
-
-            {/* --- RECENT ACTIVITY TIMELINE (Beautiful & Useful) --- */}
-        <div className="card-glass" style={{ 
-            backgroundColor: 'white', 
-            borderRadius: '15px', 
-            padding: '25px', 
-            boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
-            flex: 1, // Fills remaining height
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column'
-        }}>
-            <h3 style={{ margin: '0 0 20px 0', color: '#111827', fontSize: '18px', fontWeight: 'bold' }}>
-                ⚡ Recent Activity
-            </h3>
-
-            <div style={{ overflowY: 'auto', paddingRight: '10px' }}>
-                {activities.length > 0 ? (
-                    activities.map((item, index) => {
-                        const style = getActivityStyle(item.type); 
-                        return (
-                            <div key={`${item.type}-${item.sort_date}-${item.title.slice(0,15)}`} style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
-                                <div style={{ 
-                                    minWidth: '40px', height: '40px', borderRadius: '50%', backgroundColor: style.bg, 
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' 
-                                }}>{style.icon}</div>
-                                <div>
-                                    <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#374151' }}>{item.title}</div>
-                                    <div style={{ fontSize: '13px', color: '#6B7280' }}>{item.message}</div>
-                                    <div style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '4px' }}>{item.timestamp}</div>
-                                </div>
-                            </div>
-                        );
-                    })
-                ) : (
-                    <div style={{ textAlign: 'center', color: '#9CA3AF', padding: '20px' }}>No recent activity.</div>
-                )}
-            </div>
-        </div>
+      </div>
 
 
-        </div>    
+    </div>
   );
 }
 
 // --- MAIN APP SHELL ---
 function App() {
-  const [view, setView] = useState("home"); 
-  const [selectedStudent, setSelectedStudent] = useState(null); 
+  const [view, setView] = useState("home");
+  const [selectedStudent, setSelectedStudent] = useState(null);
 
   // --- NEW LOGIC: INTRO & LOGIN ---
   const [showIntro, setShowIntro] = useState(true);
@@ -721,200 +723,200 @@ function App() {
   };
 
   const MenuItem = ({ id, label, icon, color }) => (
-    <div 
-        onClick={() => setView(id)}
-        style={{
-            padding: "12px 20px",
-            margin: "5px 10px",
-            cursor: "pointer",
-            borderRadius: "10px",
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            backgroundColor: view === id ? "rgba(255,255,255,0.15)" : "transparent",
-            color: "white",
-            fontWeight: view === id ? "bold" : "normal",
-            transition: "all 0.2s"
-        }}
-        onMouseOver={(e) => { if(view!==id) e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.05)" }}
-        onMouseOut={(e) => { if(view!==id) e.currentTarget.style.backgroundColor = "transparent" }}
+    <div
+      onClick={() => setView(id)}
+      style={{
+        padding: "12px 20px",
+        margin: "5px 10px",
+        cursor: "pointer",
+        borderRadius: "10px",
+        display: "flex",
+        alignItems: "center",
+        gap: "12px",
+        backgroundColor: view === id ? "rgba(255,255,255,0.15)" : "transparent",
+        color: "white",
+        fontWeight: view === id ? "bold" : "normal",
+        transition: "all 0.2s"
+      }}
+      onMouseOver={(e) => { if (view !== id) e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.05)" }}
+      onMouseOut={(e) => { if (view !== id) e.currentTarget.style.backgroundColor = "transparent" }}
     >
-        <span style={{ fontSize: "18px" }}>{icon}</span>
-        <span>{label}</span>
-        {view === id && <div style={{ marginLeft: "auto", width: "6px", height: "6px", borderRadius: "50%", backgroundColor: color || "#4F46E5" }}></div>}
+      <span style={{ fontSize: "18px" }}>{icon}</span>
+      <span>{label}</span>
+      {view === id && <div style={{ marginLeft: "auto", width: "6px", height: "6px", borderRadius: "50%", backgroundColor: color || "#4F46E5" }}></div>}
     </div>
   );
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#F3F4F6" }}>
-      
-      {/* 1. SIDEBAR */}
-      <div className="sidebar" style={{ 
-          width: "260px", 
-          backgroundColor: "#111827", 
-          color: "white", 
-          display: "flex", 
-          flexDirection: "column",
-          position: "fixed",
-          height: "100vh",
-          boxShadow: "4px 0 10px rgba(0,0,0,0.1)",
-          zIndex: 100
-      }}>
-        
-        {/* BRANDING HEADER - CLEAN & HORIZONTAL */}
-<div
-  style={{
-    padding: "20px 24px", // More padding for premium feel
-    borderBottom: "1px solid rgba(255,255,255,0.05)",
-    display: "flex",
-    alignItems: "center",
-    gap: "15px",
-  }}
->
-  {/* 1. The Orb Icon (Using the Favicon for perfect square ratio) */}
-  <img
-    src="/assets/images/favicon.png"
-    alt="Tezaura"
-    style={{
-      height: "38px",
-      width: "38px",
-      filter: "drop-shadow(0 0 12px rgba(0, 194, 255, 0.4))", // Glowing Orb
-    }}
-  />
 
-  {/* 2. The Text (Styled via Code to ensure readability) */}
-  <div style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
-    <h1
-      style={{
-        margin: 0,
-        fontSize: "22px",
-        fontWeight: "800",
-        letterSpacing: "1px",
-        background: "linear-gradient(135deg, #ffffff 0%, #94a3b8 100%)", // Silver Gradient
-        WebkitBackgroundClip: "text",
-        WebkitTextFillColor: "transparent",
-        fontFamily: "sans-serif", // Or 'Orbitron' if you imported it
-      }}
-    >
-      TEZAURA
-    </h1>
-    <span
-      style={{
-        fontSize: "9px",
-        color: "#64748b",
-        letterSpacing: "2.5px",
-        textTransform: "uppercase",
-        marginTop: "-2px"
-      }}
-    >
-      Admin Console
-    </span>
-  </div>
-</div>
+      {/* 1. SIDEBAR */}
+      <div className="sidebar" style={{
+        width: "260px",
+        backgroundColor: "#111827",
+        color: "white",
+        display: "flex",
+        flexDirection: "column",
+        position: "fixed",
+        height: "100vh",
+        boxShadow: "4px 0 10px rgba(0,0,0,0.1)",
+        zIndex: 100
+      }}>
+
+        {/* BRANDING HEADER - CLEAN & HORIZONTAL */}
+        <div
+          style={{
+            padding: "20px 24px", // More padding for premium feel
+            borderBottom: "1px solid rgba(255,255,255,0.05)",
+            display: "flex",
+            alignItems: "center",
+            gap: "15px",
+          }}
+        >
+          {/* 1. The Orb Icon (Using the Favicon for perfect square ratio) */}
+          <img
+            src="/assets/images/favicon.png"
+            alt="Tezaura"
+            style={{
+              height: "38px",
+              width: "38px",
+              filter: "drop-shadow(0 0 12px rgba(0, 194, 255, 0.4))", // Glowing Orb
+            }}
+          />
+
+          {/* 2. The Text (Styled via Code to ensure readability) */}
+          <div style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
+            <h1
+              style={{
+                margin: 0,
+                fontSize: "22px",
+                fontWeight: "800",
+                letterSpacing: "1px",
+                background: "linear-gradient(135deg, #ffffff 0%, #94a3b8 100%)", // Silver Gradient
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                fontFamily: "sans-serif", // Or 'Orbitron' if you imported it
+              }}
+            >
+              TEZAURA
+            </h1>
+            <span
+              style={{
+                fontSize: "9px",
+                color: "#64748b",
+                letterSpacing: "2.5px",
+                textTransform: "uppercase",
+                marginTop: "-2px"
+              }}
+            >
+              Admin Console
+            </span>
+          </div>
+        </div>
 
         <div style={{ padding: "20px 0", flex: 1, overflowY: "auto" }}>
-            <div style={{ padding: "0 20px 10px", fontSize: "12px", color: "#6B7280", fontWeight: "bold", textTransform: "uppercase" }}>Main</div>
-            <MenuItem id="home" label="Dashboard" icon="🏠" color="#60A5FA" />
-            <MenuItem id="search" label="Student" icon="🎓" color="#34D399" />
-            <MenuItem id="add" label="Admission" icon="➕" />
-            
-            <div style={{ padding: "20px 20px 10px", fontSize: "12px", color: "#6B7280", fontWeight: "bold", textTransform: "uppercase" }}>Academic</div>
-            <MenuItem id="attendance" label="Attendance" icon="📅" color="#FBBF24" />
-            <MenuItem id="exams" label="Exams & Results" icon="📝" color="#F472B6" />
-            {/* Reports moved HERE */}
-            <MenuItem id="reports" label="Reports" icon="📊" color="#A78BFA" />
-            <MenuItem id="analytics" label="Analytics" icon="🔬" color="#06b6d4" />
-            
-            <div style={{ padding: "20px 20px 10px", fontSize: "12px", color: "#6B7280", fontWeight: "bold", textTransform: "uppercase" }}>Finance & Admin</div>
-            <MenuItem id="fees" label="Fee Collection" icon="💰" color="#34D399" />
-            <MenuItem id="library" label="Library" icon="📚" color="#F87171" />
-            
-            {/* Placed directly below Library as requested */}
-            <MenuItem id="customlist" label="Custom Lists" icon="📋" color="#8B5CF6" />
-            
-            <MenuItem id="promote" label="Promote Year" icon="🚀" color="#F472B6" />
-            
-            {/* 👇 NEW SOFTWARE SECTION 👇 */}
-            <div style={{ padding: "20px 20px 10px", fontSize: "12px", color: "#6B7280", fontWeight: "bold", textTransform: "uppercase" }}>Software</div>
-            <MenuItem id="settings" label="Settings" icon="⚙️" color="#9CA3AF" />
-            <MenuItem id="backup" label="Data Backup" icon="🛡️" color="#10B981" />
-            <MenuItem id="about" label="About & Credits" icon="✨" color="#60A5FA" />
-            {/* 👆 END NEW SECTION 👆 */}
+          <div style={{ padding: "0 20px 10px", fontSize: "12px", color: "#6B7280", fontWeight: "bold", textTransform: "uppercase" }}>Main</div>
+          <MenuItem id="home" label="Dashboard" icon="🏠" color="#60A5FA" />
+          <MenuItem id="search" label="Student" icon="🎓" color="#34D399" />
+          <MenuItem id="add" label="Admission" icon="➕" />
+
+          <div style={{ padding: "20px 20px 10px", fontSize: "12px", color: "#6B7280", fontWeight: "bold", textTransform: "uppercase" }}>Academic</div>
+          <MenuItem id="attendance" label="Attendance" icon="📅" color="#FBBF24" />
+          <MenuItem id="exams" label="Exams & Results" icon="📝" color="#F472B6" />
+          {/* Reports moved HERE */}
+          <MenuItem id="reports" label="Reports" icon="📊" color="#A78BFA" />
+          <MenuItem id="analytics" label="Analytics" icon="🔬" color="#06b6d4" />
+
+          <div style={{ padding: "20px 20px 10px", fontSize: "12px", color: "#6B7280", fontWeight: "bold", textTransform: "uppercase" }}>Finance & Admin</div>
+          <MenuItem id="fees" label="Fee Collection" icon="💰" color="#34D399" />
+          <MenuItem id="library" label="Library" icon="📚" color="#F87171" />
+
+          {/* Placed directly below Library as requested */}
+          <MenuItem id="customlist" label="Custom Lists" icon="📋" color="#8B5CF6" />
+
+          <MenuItem id="promote" label="Promote Year" icon="🚀" color="#F472B6" />
+
+          {/* 👇 NEW SOFTWARE SECTION 👇 */}
+          <div style={{ padding: "20px 20px 10px", fontSize: "12px", color: "#6B7280", fontWeight: "bold", textTransform: "uppercase" }}>Software</div>
+          <MenuItem id="settings" label="Settings" icon="⚙️" color="#9CA3AF" />
+          <MenuItem id="backup" label="Data Backup" icon="🛡️" color="#10B981" />
+          <MenuItem id="about" label="About & Credits" icon="✨" color="#60A5FA" />
+          {/* 👆 END NEW SECTION 👆 */}
 
         </div>
 
         <div style={{ padding: "20px", borderTop: "1px solid #374151", backgroundColor: "#1F2937" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <div style={{ width: "35px", height: "35px", borderRadius: "50%", backgroundColor: "#4F46E5", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>A</div>
-                <div>
-                    <div style={{ fontSize: "14px", fontWeight: "bold" }}>Admin User</div>
-                    <div style={{ fontSize: "11px", color: "#9CA3AF" }}>Online</div>
-                </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div style={{ width: "35px", height: "35px", borderRadius: "50%", backgroundColor: "#4F46E5", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>A</div>
+            <div>
+              <div style={{ fontSize: "14px", fontWeight: "bold" }}>Admin User</div>
+              <div style={{ fontSize: "11px", color: "#9CA3AF" }}>Online</div>
             </div>
+          </div>
         </div>
       </div>
 
       {/* 2. MAIN CONTENT AREA */}
       <div className="main-content" style={{ flex: 1, marginLeft: "260px", padding: "30px", overflowY: "auto" }}>
-        
+
         {/* Header */}
         <div className="dashboard-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px" }}>
-            <div>
-                <h2 style={{ margin: 0, fontSize: "24px", color: "#111827" }}>
-                    {view === "home" && "Dashboard"}
-                    {view === "search" && "Student Directory"}
-                    {view === "add" && "New Admission"}
-                    {view === "fees" && "Fee Collection"}
-                    {view === "attendance" && "Attendance Register"}
-                    {view === "exams" && "Examination Control"}
-                    {view === "library" && "Library Management"}
-                    {view === "reports" && "Reports"}
-                    {view === "analytics" && "Student Analytics"}
-                    {view === "customlist" && "Custom List Generator"}
-                    {view === "promote" && "Year-End Promotion"}
-                    {view === "profile" && "Student Profile"}
-                    {view === "settings" && "Software Settings"}
-                    {view === "backup" && "Data Safety Center"}
-                    {view === "about" && "About & Credits"}
-                </h2>
-                <p style={{ margin: "5px 0 0", color: "#6B7280", fontSize: "14px" }}>
-                    {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                </p>
-            </div>
-            
-            <div>
-                <SessionBadge />
-            </div>
+          <div>
+            <h2 style={{ margin: 0, fontSize: "24px", color: "#111827" }}>
+              {view === "home" && "Dashboard"}
+              {view === "search" && "Student Directory"}
+              {view === "add" && "New Admission"}
+              {view === "fees" && "Fee Collection"}
+              {view === "attendance" && "Attendance Register"}
+              {view === "exams" && "Examination Control"}
+              {view === "library" && "Library Management"}
+              {view === "reports" && "Reports"}
+              {view === "analytics" && "Student Analytics"}
+              {view === "customlist" && "Custom List Generator"}
+              {view === "promote" && "Year-End Promotion"}
+              {view === "profile" && "Student Profile"}
+              {view === "settings" && "Software Settings"}
+              {view === "backup" && "Data Safety Center"}
+              {view === "about" && "About & Credits"}
+            </h2>
+            <p style={{ margin: "5px 0 0", color: "#6B7280", fontSize: "14px" }}>
+              {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </p>
+          </div>
+
+          <div>
+            <SessionBadge />
+          </div>
 
         </div>
 
         {/* Content */}
         <div style={{ minHeight: "80vh", animation: "fadeIn 0.3s ease-in-out" }}>
-            {view === "home" && <DashboardHome />}
-            {view === "add" && <AddStudent />}
-            {view === "search" && <SearchStudent onViewProfile={handleViewProfile} />}
-            {view === "fees" && <FeeCollection />}
-            {view === "reports" && <ReportsDashboard onViewProfile={handleViewProfile} />}
-            {view === "analytics" && <Analytics />}
-            {view === "attendance" && <AttendanceSheet />}
-            {view === "exams" && <ExamManager />}
-            {view === "library" && <LibraryManager />}
-            {view === "customlist" && <CustomListMaker />}
-            {view === "promote" && <PromotionManager />}
-            {view === "profile" && (
-                <StudentProfile 
-                    student={selectedStudent} 
-                    onBack={() => setView("search")} 
-                />
-            )}
-            {view === "settings" && <SettingsManager />}
-            {view === "backup" && <BackupManager />}
-            {view === "about" && <About />}
+          {view === "home" && <DashboardHome />}
+          {view === "add" && <AddStudent />}
+          {view === "search" && <SearchStudent onViewProfile={handleViewProfile} />}
+          {view === "fees" && <FeeCollection />}
+          {view === "reports" && <ReportsDashboard onViewProfile={handleViewProfile} />}
+          {view === "analytics" && <Analytics />}
+          {view === "attendance" && <AttendanceSheet />}
+          {view === "exams" && <ExamManager />}
+          {view === "library" && <LibraryManager />}
+          {view === "customlist" && <CustomListMaker />}
+          {view === "promote" && <PromotionManager />}
+          {view === "profile" && (
+            <StudentProfile
+              student={selectedStudent}
+              onBack={() => setView("search")}
+            />
+          )}
+          {view === "settings" && <SettingsManager />}
+          {view === "backup" && <BackupManager />}
+          {view === "about" && <About />}
         </div>
 
       </div>
 
-       
+
 
     </div>
   );
