@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import SafeLottie from './SafeLottie';
 import backupAnim from './backupAnim.json';
 import API_BASE from '../config';

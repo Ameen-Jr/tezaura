@@ -1,5 +1,5 @@
 {
-    "version": "1.1.0",
+    "version": "1.0.0",
     "release_date": "2026-04-06",
-    "notes": "Google Drive auto-backup, three-checkbox promotion cleanup"
+    "notes": "Initial release"
 }

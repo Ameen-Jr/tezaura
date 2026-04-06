@@ -8,7 +8,7 @@ import sqlite3
 import os
 
 DB_FILE = 'classflow.db'
-CURRENT_APP_VERSION = "1.1.0"  # Bump this with every release
+CURRENT_APP_VERSION = "1.0.0"  # Bump this with every release
 
 
 def get_db():
@@ -143,11 +143,9 @@ def run_migrations():
     cursor.execute("INSERT OR IGNORE INTO system_settings (key, value) VALUES ('academic_year', '2025-26')")
 
     # ----------------------------------------------------------------
-    # v1.1.0 — Google Drive backup support
+    # v1.0.0 includes Drive backup support at launch — no extra migration needed.
+    # drive_folder_id and last_drive_backup are written at runtime.
     # ----------------------------------------------------------------
-    print("[v1.1.0] Drive backup settings (no schema change needed)")
-    # drive_folder_id and last_drive_backup are written at runtime,
-    # no ALTER TABLE required. Nothing to do here structurally.
 
     # ----------------------------------------------------------------
     # ADD FUTURE MIGRATIONS BELOW THIS LINE
