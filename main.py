@@ -1066,6 +1066,9 @@ def discontinue_student(admission_number: str, data: DiscontinueSchema):
 @app.post("/promote-year-end")
 def promote_students(data: PromotionSchema):
     try:
+        from datetime import date as _date
+        _stamp = _date.today().strftime("%Y-%m-%d")
+        shutil.copy("classflow.db", f"pre_promotion_backup_{_stamp}.db")
         with get_db() as connection:
             cursor = connection.cursor()
             
@@ -1164,10 +1167,6 @@ def discontinue_batch(data: BatchDiscontinueSchema):
 @app.get("/reports/discontinued-years")
 def get_discontinued_years():
     try:
-        # Auto-backup before any promotion runs
-        from datetime import date as _date
-        _stamp = _date.today().strftime("%Y-%m-%d")
-        shutil.copy("classflow.db", f"pre_promotion_backup_{_stamp}.db")
         with get_db() as connection:
             cursor = connection.cursor()
             # Extract just the Year (YYYY) from date_left (YYYY-MM-DD)
