@@ -39,7 +39,7 @@ async def startup_auto_backup():
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -1080,14 +1080,12 @@ def promote_students(data: PromotionSchema):
                             """, (grad[0], grad[1], grad[5], grad[6], grad[7], data.graduation_year, grad[2], grad[3], grad[4]))
                 except sqlite3.IntegrityError: pass
             
-            # 2. Promote Classes (Order is critical: must go top-down to avoid chain promotion)
-            # NEW — always top-down to prevent chain promotion
-            # Step A: Class 9 → 10 FIRST (before 8s are moved)
+            # NEW (correct)
+            # First, deactivate the actual graduates (still class_standard='10' at this point)
+            cursor.execute("UPDATE students SET is_active = 0 WHERE class_standard = '10' AND is_active = 1")
+            # Then promote 9 → 10 and 8 → 9 (graduates are already inactive, safe)
             cursor.execute("UPDATE students SET class_standard = '10' WHERE class_standard = '9' AND is_active = 1")
-            # Step B: Class 8 → 9 (safe now, 9s are already gone)
-            cursor.execute("UPDATE students SET class_standard = '9'  WHERE class_standard = '8' AND is_active = 1")
-            # Step C: Deactivate graduating Class 10 (must be AFTER 9→10 move)
-            cursor.execute("UPDATE students SET is_active = 0 WHERE class_standard = '10'")
+            cursor.execute("UPDATE students SET class_standard = '9'  WHERE class_standard = '8' AND is_active = 1") 
             
             if data.reset_fees: cursor.execute("DELETE FROM fees")
             if data.reset_marks:
