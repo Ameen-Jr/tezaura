@@ -309,7 +309,10 @@ def add_student(
     try:
         photo_path = None
         if photo:
-            file_extension = photo.filename.split(".")[-1]
+            ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
+            file_extension = photo.filename.split(".")[-1].lower()
+            if file_extension not in ALLOWED_EXTENSIONS:
+                raise HTTPException(status_code=400, detail="Only JPG, PNG, WEBP images allowed.")
             filename = f"{admission_number}_{name.replace(' ', '_')}.{file_extension}"
             file_location = f"uploaded_photos/{filename}"
             with open(file_location, "wb+") as file_object:
