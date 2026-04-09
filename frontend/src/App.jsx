@@ -797,14 +797,27 @@ function App() {
 
   const MenuItem = ({ id, label, icon }) => {
     const isActive = view === id;
+    const getIconColor = () => {
+      switch (id) {
+        case 'home': return '#00c2ff';
+        case 'add': return '#2cc56f';
+        case 'fees': return '#ffc021';
+        case 'attendance': return '#ff0080';
+        case 'exams': return '#ac66f5';
+        default: return 'inherit';
+      }
+    };
+
     return (
       <div
         onClick={() => setView(id)}
         className={`sidebar-item ${isActive ? 'sidebar-item-active' : ''}`}
       >
-        <span className="sidebar-item-icon">{ICONS[icon] || ICONS.home}</span>
+        <span className="sidebar-item-icon" style={{ color: isActive ? getIconColor() : 'inherit' }}>
+          {ICONS[icon] || ICONS.home}
+        </span>
         <span className="sidebar-item-label">{label}</span>
-        {isActive && <span className="sidebar-item-pip" />}
+        {isActive && <div style={{ position: 'absolute', right: '10px', width: '4px', height: '4px', background: '#fff', borderRadius: '50%', boxShadow: '0 0 8px #fff' }} />}
       </div>
     );
   };
@@ -812,67 +825,25 @@ function App() {
   return (
     <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#F3F4F6" }}>
 
-      {/* 1. SIDEBAR */}
-      <div className="sidebar" style={{
-        width: "260px",
-        backgroundColor: "#111827",
-        color: "white",
-        display: "flex",
-        flexDirection: "column",
-        position: "fixed",
-        height: "100vh",
-        boxShadow: "4px 0 10px rgba(0,0,0,0.1)",
-        zIndex: 100
-      }}>
-
-        {/* BRANDING HEADER - CLEAN & HORIZONTAL */}
-        <div
-          style={{
-            padding: "20px 24px", // More padding for premium feel
-            borderBottom: "1px solid rgba(255,255,255,0.05)",
-            display: "flex",
-            alignItems: "center",
-            gap: "15px",
-          }}
-        >
-          {/* 1. The Orb Icon (Using the Favicon for perfect square ratio) */}
+      <div className="sidebar">
+        {/* BRANDING HEADER */}
+        <div style={{
+          padding: "25px 24px",
+          borderBottom: "1px solid rgba(255,255,255,0.08)",
+          background: "rgba(255,255,255,0.02)",
+          backdropFilter: "blur(10px)",
+          display: "flex",
+          alignItems: "center",
+          gap: "15px",
+        }}>
           <img
             src="/assets/images/favicon.png"
             alt="Tezaura"
-            style={{
-              height: "38px",
-              width: "38px",
-              filter: "drop-shadow(0 0 12px rgba(0, 194, 255, 0.4))", // Glowing Orb
-            }}
+            style={{ height: "38px", width: "38px", filter: "drop-shadow(0 0 12px #00c2ff)" }}
           />
-
-          {/* 2. The Text (Styled via Code to ensure readability) */}
-          <div style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
-            <h1
-              style={{
-                margin: 0,
-                fontSize: "22px",
-                fontWeight: "800",
-                letterSpacing: "1px",
-                background: "linear-gradient(135deg, #ffffff 0%, #94a3b8 100%)", // Silver Gradient
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                fontFamily: "sans-serif", // Or 'Orbitron' if you imported it
-              }}
-            >
-              TEZAURA
-            </h1>
-            <span
-              style={{
-                fontSize: "9px",
-                color: "#64748b",
-                letterSpacing: "2.5px",
-                textTransform: "uppercase",
-                marginTop: "-2px"
-              }}
-            >
-              Admin Console
-            </span>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <h1 style={{ margin: 0, fontSize: "20px", fontWeight: "800", letterSpacing: "1px", color: "#fff" }}>TEZAURA</h1>
+            <span style={{ fontSize: "9px", color: "#00c2ff", letterSpacing: "2px", textTransform: "uppercase" }}>Universal Edition</span>
           </div>
         </div>
 
