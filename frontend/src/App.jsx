@@ -722,30 +722,92 @@ function App() {
     setView("profile");
   };
 
-  const MenuItem = ({ id, label, icon, color }) => (
-    <div
-      onClick={() => setView(id)}
-      style={{
-        padding: "12px 20px",
-        margin: "5px 10px",
-        cursor: "pointer",
-        borderRadius: "10px",
-        display: "flex",
-        alignItems: "center",
-        gap: "12px",
-        backgroundColor: view === id ? "rgba(255,255,255,0.15)" : "transparent",
-        color: "white",
-        fontWeight: view === id ? "bold" : "normal",
-        transition: "all 0.2s"
-      }}
-      onMouseOver={(e) => { if (view !== id) e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.05)" }}
-      onMouseOut={(e) => { if (view !== id) e.currentTarget.style.backgroundColor = "transparent" }}
-    >
-      <span style={{ fontSize: "18px" }}>{icon}</span>
-      <span>{label}</span>
-      {view === id && <div style={{ marginLeft: "auto", width: "6px", height: "6px", borderRadius: "50%", backgroundColor: color || "#4F46E5" }}></div>}
-    </div>
-  );
+  const ICONS = {
+    home: (
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" /><path d="M9 21V12h6v9" />
+      </svg>
+    ),
+    search: (
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="10" cy="10" r="6" /><circle cx="10" cy="10" r="2.5" strokeWidth="1.4" /><line x1="14.5" y1="14.5" x2="20" y2="20" />
+      </svg>
+    ),
+    add: (
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="5" width="18" height="16" rx="2" /><path d="M12 9v6M9 12h6" /><path d="M8 3l2 2M16 3l-2 2" />
+      </svg>
+    ),
+    attendance: (
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /><path d="M8 14l2.5 2.5L16 11" />
+      </svg>
+    ),
+    exams: (
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><path d="M14 2v6h6" /><path d="M9 13h6M9 17h4" />
+      </svg>
+    ),
+    reports: (
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M18 20V10M12 20V4M6 20v-6" />
+      </svg>
+    ),
+    analytics: (
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="9" /><path d="M12 3v9l5 3" />
+      </svg>
+    ),
+    fees: (
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="6" width="20" height="14" rx="2" /><path d="M2 10h20" /><circle cx="12" cy="15" r="2" /><path d="M6 3l3 3M18 3l-3 3" />
+      </svg>
+    ),
+    library: (
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 19.5A2.5 2.5 0 016.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" /><path d="M9 7h6M9 11h4" />
+      </svg>
+    ),
+    customlist: (
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" /><rect x="9" y="3" width="6" height="4" rx="1" /><path d="M9 12h6M9 16h4" />
+      </svg>
+    ),
+    promote: (
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 19V5M5 12l7-7 7 7" /><path d="M5 19h14" />
+      </svg>
+    ),
+    settings: (
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+      </svg>
+    ),
+    backup: (
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      </svg>
+    ),
+    about: (
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" />
+      </svg>
+    ),
+  };
+
+  const MenuItem = ({ id, label, icon }) => {
+    const isActive = view === id;
+    return (
+      <div
+        onClick={() => setView(id)}
+        className={`sidebar-item ${isActive ? 'sidebar-item-active' : ''}`}
+      >
+        <span className="sidebar-item-icon">{ICONS[icon] || ICONS.home}</span>
+        <span className="sidebar-item-label">{label}</span>
+        {isActive && <span className="sidebar-item-pip" />}
+      </div>
+    );
+  };
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#F3F4F6" }}>
@@ -816,32 +878,26 @@ function App() {
 
         <div style={{ padding: "20px 0", flex: 1, overflowY: "auto" }}>
           <div style={{ padding: "0 20px 10px", fontSize: "12px", color: "#6B7280", fontWeight: "bold", textTransform: "uppercase" }}>Main</div>
-          <MenuItem id="home" label="Dashboard" icon="🏠" color="#60A5FA" />
-          <MenuItem id="search" label="Student" icon="🎓" color="#34D399" />
-          <MenuItem id="add" label="Admission" icon="➕" />
+          <MenuItem id="home" label="Dashboard" icon="home" />
+          <MenuItem id="search" label="Students" icon="search" />
+          <MenuItem id="add" label="Admission" icon="add" />
 
-          <div style={{ padding: "20px 20px 10px", fontSize: "12px", color: "#6B7280", fontWeight: "bold", textTransform: "uppercase" }}>Academic</div>
-          <MenuItem id="attendance" label="Attendance" icon="📅" color="#FBBF24" />
-          <MenuItem id="exams" label="Exams & Results" icon="📝" color="#F472B6" />
-          {/* Reports moved HERE */}
-          <MenuItem id="reports" label="Reports" icon="📊" color="#A78BFA" />
-          <MenuItem id="analytics" label="Analytics" icon="🔬" color="#06b6d4" />
+          <div style={{ padding: "18px 20px 8px", fontSize: "11px", color: "#6B7280", fontWeight: "bold", textTransform: "uppercase", letterSpacing: "0.8px" }}>Academic</div>
+          <MenuItem id="attendance" label="Attendance" icon="attendance" />
+          <MenuItem id="exams" label="Exams & Results" icon="exams" />
+          <MenuItem id="reports" label="Reports" icon="reports" />
+          <MenuItem id="analytics" label="Analytics" icon="analytics" />
 
-          <div style={{ padding: "20px 20px 10px", fontSize: "12px", color: "#6B7280", fontWeight: "bold", textTransform: "uppercase" }}>Finance & Admin</div>
-          <MenuItem id="fees" label="Fee Collection" icon="💰" color="#34D399" />
-          <MenuItem id="library" label="Library" icon="📚" color="#F87171" />
+          <div style={{ padding: "18px 20px 8px", fontSize: "11px", color: "#6B7280", fontWeight: "bold", textTransform: "uppercase", letterSpacing: "0.8px" }}>Finance & Admin</div>
+          <MenuItem id="fees" label="Fee Collection" icon="fees" />
+          <MenuItem id="library" label="Library" icon="library" />
+          <MenuItem id="customlist" label="Custom Lists" icon="customlist" />
+          <MenuItem id="promote" label="Promote Year" icon="promote" />
 
-          {/* Placed directly below Library as requested */}
-          <MenuItem id="customlist" label="Custom Lists" icon="📋" color="#8B5CF6" />
-
-          <MenuItem id="promote" label="Promote Year" icon="🚀" color="#F472B6" />
-
-          {/* 👇 NEW SOFTWARE SECTION 👇 */}
-          <div style={{ padding: "20px 20px 10px", fontSize: "12px", color: "#6B7280", fontWeight: "bold", textTransform: "uppercase" }}>Software</div>
-          <MenuItem id="settings" label="Settings" icon="⚙️" color="#9CA3AF" />
-          <MenuItem id="backup" label="Data Backup" icon="🛡️" color="#10B981" />
-          <MenuItem id="about" label="About & Credits" icon="✨" color="#60A5FA" />
-          {/* 👆 END NEW SECTION 👆 */}
+          <div style={{ padding: "18px 20px 8px", fontSize: "11px", color: "#6B7280", fontWeight: "bold", textTransform: "uppercase", letterSpacing: "0.8px" }}>Software</div>
+          <MenuItem id="settings" label="Settings" icon="settings" />
+          <MenuItem id="backup" label="Data Backup" icon="backup" />
+          <MenuItem id="about" label="About & Credits" icon="about" />
 
         </div>
 
