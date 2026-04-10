@@ -1169,40 +1169,67 @@ def get_discontinued_years():
     try:
         with get_db() as connection:
             cursor = connection.cursor()
-            # Extract just the Year (YYYY) from date_left (YYYY-MM-DD)
-            cursor.execute("SELECT DISTINCT substr(date_left, 1, 4) FROM discontinued_students ORDER BY date_left DESC")
-            years = [row[0] for row in cursor.fetchall() if row[0]]
+            cursor.execute("SELECT DISTINCT date_left FROM discontinued_students WHERE date_left IS NOT NULL ORDER BY date_left DESC")
+            seen = set()
+            years = []
+            for row in cursor.fetchall():
+                date_str = row[0]
+                if not date_str or len(date_str) < 7:
+                    continue
+                try:
+                    yr = int(date_str[:4])
+                    mo = int(date_str[5:7])
+                    # Academic year: Apr-Dec belongs to YYYY-(YY+1), Jan-Mar belongs to (YYYY-1)-YY
+                    if mo >= 4:
+                        acad = f"{yr}-{str(yr + 1)[-2:]}"
+                    else:
+                        acad = f"{yr - 1}-{str(yr)[-2:]}"
+                    if acad not in seen:
+                        seen.add(acad)
+                        years.append(acad)
+                except (ValueError, IndexError):
+                    continue
             return years
     except Exception as e: return []
 
 @app.get("/reports/discontinued-list")
 def get_discontinued_list(year: str):
+    """year param is now in YYYY-YY format e.g. '2025-26'"""
     try:
+        # Parse academic year range from YYYY-YY format
+        parts = year.split("-")
+        if len(parts) != 2:
+            raise HTTPException(status_code=400, detail="Year must be YYYY-YY format")
+        start_yr = int(parts[0])
+        # Academic year Apr of start_yr to Mar of (start_yr+1)
+        date_from = f"{start_yr}-04-01"
+        date_to   = f"{start_yr + 1}-03-31"
+
         with get_db() as connection:
             cursor = connection.cursor()
-            
-            # Join discontinued table with main students table to get School Name
             query = """
                 SELECT d.name, d.admission_number, d.class_standard, d.division, d.date_left, s.school_name
                 FROM discontinued_students d
                 LEFT JOIN students s ON d.original_student_id = s.id
-                WHERE d.date_left LIKE ?
+                WHERE d.date_left >= ? AND d.date_left <= ?
                 ORDER BY d.date_left ASC
             """
-            cursor.execute(query, (f"{year}%",))
-            
+            cursor.execute(query, (date_from, date_to))
             results = []
             for row in cursor.fetchall():
                 results.append({
-                    "name": row[0], 
-                    "adm": row[1], 
-                    "class": row[2], 
-                    "div": row[3], 
-                    "date": row[4], 
+                    "name": row[0],
+                    "adm": row[1],
+                    "class": row[2],
+                    "div": row[3],
+                    "date": row[4],
                     "school": row[5] or "N/A"
                 })
             return results
-    except Exception as e: raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # --- ALUMNI ENDPOINTS ---
 

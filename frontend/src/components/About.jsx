@@ -236,30 +236,30 @@ const About = () => {
       `}</style>
 
       <div className="blob-container">
-          <div className="blob blob-1"></div>
-          <div className="blob blob-2"></div>
-          <div className="blob blob-3"></div>
+        <div className="blob blob-1"></div>
+        <div className="blob blob-2"></div>
+        <div className="blob blob-3"></div>
       </div>
 
       <div className="deck-container">
 
         {/* --- CARD 1: PRODUCT INFO --- */}
-        <div 
+        <div
           className={`glass-card card-product ${activeCard === 'product' ? 'active' : 'inactive'}`}
           onClick={() => activeCard === 'product' ? null : setActiveCard('product')}
         >
           <div className="app-icon-container">
-             <img src={favicon} alt="Logo" className="app-logo-img" />
+            <img src={favicon} alt="Logo" className="app-logo-img" />
           </div>
-          
+
           <h1 className="title-large">TEZAURA</h1>
           <div className="subtitle">Academic ERP System</div>
-          
+
           <div className="edition-label">UNIVERSAL TRUST EDITION</div>
           <div className="version-badge">v1.0.0 Stable Build</div>
 
           <p className="desc-text">
-            A complete enterprise solution for managing students, fees, libraries, and academic records. 
+            A complete enterprise solution for managing students, fees, libraries, and academic records.
             Engineered for speed, security, and simplicity.
           </p>
 
@@ -272,71 +272,71 @@ const About = () => {
           </div>
 
           <div style={{ width: "100%", marginTop: "10px", display: 'flex', justifyContent: 'center' }}>
-            <button className="swap-btn" style={{ background: "#1e293b", color: "white", padding: "14px 30px", fontSize: "14px", border: "none" }} 
+            <button className="swap-btn" style={{ background: "#1e293b", color: "white", padding: "14px 30px", fontSize: "14px", border: "none" }}
               onClick={(e) => { e.stopPropagation(); setActiveCard('dev'); }}>
-                Meet The Developer →
+              Meet The Developer →
             </button>
           </div>
-          
+
           <div className="copyright">© 2026 Tezaura. All Rights Reserved.</div>
         </div>
 
 
         {/* --- CARD 2: DEVELOPER PROFILE --- */}
-        <div 
+        <div
           className={`glass-card card-dev ${activeCard === 'dev' ? 'active' : 'inactive'}`}
           onClick={() => activeCard === 'dev' ? null : setActiveCard('dev')}
         >
-           <div style={{ width: "200px", height: "180px", marginTop: "-20px" }}>
-              <SafeLottie animationData={spaceBoyAnim} />
-           </div>
+          <div style={{ width: "200px", height: "180px", marginTop: "-20px" }}>
+            <SafeLottie animationData={spaceBoyAnim} />
+          </div>
 
-           <h2 className="dev-name-font">Ameen Jawhar</h2>
-           
-           {/* HIGHLIGHTED ROLE */}
-           <div className="dev-role-highlight">Full Stack Engineer & UI/UX Designer</div>
+          <h2 className="dev-name-font">Ameen Jawhar</h2>
 
-           <p className="desc-text" style={{ marginTop: "20px" }}>
-             "I build digital products that bridge the gap between complex logic and beautiful design. 
-             Tezaura is my flagship project."
-           </p>
+          {/* HIGHLIGHTED ROLE */}
+          <div className="dev-role-highlight">Full Stack Engineer & UI/UX Designer</div>
 
-           <div className="tag-container">
-             <span className="glow-tag ui">🎨 UI/UX Design</span>
-             <span className="glow-tag db">📊 Data Vis</span>
-             <span className="glow-tag sys">⚡ System Arch</span>
-             <span className="glow-tag python">🐍 REST APIs</span>
-             <span className="glow-tag react">💻 Full Stack</span>
-             
-             {/* NEW CYAN AUTOMATION TAG */}
-             <span className="glow-tag auto">🤖 Automation</span>
-           </div>
-           
-           {/* --- SOCIAL BUTTONS --- */}
-           <div className="social-row">
-              <a href="https://www.linkedin.com/in/ameen-jawhar" target="_blank" rel="noreferrer" className="icon-button linkedin">
-                <i className="fab fa-linkedin-in"></i>
-                <span></span>
-              </a>
+          <p className="desc-text" style={{ marginTop: "20px" }}>
+            "I build digital products that bridge the gap between complex logic and beautiful design.
+            Tezaura is my flagship project."
+          </p>
 
-              <a href="https://github.com/Ameen-Jr" target="_blank" rel="noreferrer" className="icon-button github">
-                <i className="fab fa-github"></i>
-                <span></span>
-              </a>
+          <div className="tag-container">
+            <span className="glow-tag ui">🎨 UI/UX Design</span>
+            <span className="glow-tag db">📊 Data Vis</span>
+            <span className="glow-tag sys">⚡ System Arch</span>
+            <span className="glow-tag python">🐍 REST APIs</span>
+            <span className="glow-tag react">💻 Full Stack</span>
 
-              {/* GMAIL BUTTON -> OPENS MODAL (FIXED SHAPE) */}
-              <div 
-                className="icon-button gmail" 
-                onClick={(e) => { e.stopPropagation(); setShowModal(true); }}
-              >
-                <i className="fas fa-envelope"></i>
-                <span></span>
-              </div>
-           </div>
+            {/* NEW CYAN AUTOMATION TAG */}
+            <span className="glow-tag auto">🤖 Automation</span>
+          </div>
 
-           <button className="swap-btn" onClick={(e) => { e.stopPropagation(); setActiveCard('product'); }}>
+          {/* --- SOCIAL BUTTONS --- */}
+          <div className="social-row">
+            <a href="https://www.linkedin.com/in/ameen-jawhar" target="_blank" rel="noreferrer" className="icon-button linkedin">
+              <i className="fab fa-linkedin-in"></i>
+              <span></span>
+            </a>
+
+            <a href="https://github.com/Ameen-Jr" target="_blank" rel="noreferrer" className="icon-button github">
+              <i className="fab fa-github"></i>
+              <span></span>
+            </a>
+
+            {/* GMAIL BUTTON -> OPENS MODAL (FIXED SHAPE) */}
+            <div
+              className="icon-button gmail"
+              onClick={(e) => { e.stopPropagation(); setShowModal(true); }}
+            >
+              <i className="fas fa-envelope"></i>
+              <span></span>
+            </div>
+          </div>
+
+          <button className="swap-btn" onClick={(e) => { e.stopPropagation(); setActiveCard('product'); }}>
             ← Back to App Info
-           </button>
+          </button>
 
         </div>
 
@@ -345,43 +345,43 @@ const About = () => {
       {/* --- HIRE ME MODAL --- */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
-            <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-                <div style={{ fontSize: "40px", marginBottom: "10px" }}>👋</div>
-                <h2 style={{ color: "#1e293b", margin: 0, fontFamily: "'Righteous', cursive" }}>Let's Connect!</h2>
-                <p style={{ color: "#64748b", fontSize: "14px", marginTop: "5px" }}>
-                    I'm open for freelance projects and internships.
-                </p>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontSize: "40px", marginBottom: "10px" }}>👋</div>
+            <h2 style={{ color: "#1e293b", margin: 0, fontFamily: "'Righteous', cursive" }}>Let's Connect!</h2>
+            <p style={{ color: "#64748b", fontSize: "14px", marginTop: "5px" }}>
+              I'm open for freelance projects and internships.
+            </p>
 
-                {/* EMAIL ROW - CLICK TO COPY */}
-                <div className="contact-row" onClick={() => handleCopyInsideModal("ameenjawhares@gmail.com")}>
-                    <span style={{ fontSize: "20px" }}>📧</span>
-                    <div style={{ textAlign: "left" }}>
-                        <div style={{ fontSize: "11px", color: "#94a3b8", fontWeight: "bold" }}>EMAIL</div>
-                        <div style={{ fontSize: "14px", fontWeight: "600", color: "#334155" }}>
-                            {copyFeedback ? "Copied! ✅" : "ameenjawhares@gmail.com"}
-                        </div>
-                    </div>
-                    <span style={{ marginLeft: "auto", fontSize: "12px", color: copyFeedback ? "#22c55e" : "#3b82f6" }}>
-                        {copyFeedback ? "✓" : "Copy"}
-                    </span>
+            {/* EMAIL ROW - CLICK TO COPY */}
+            <div className="contact-row" onClick={() => handleCopyInsideModal("ameenjawhares@gmail.com")}>
+              <span style={{ fontSize: "20px" }}>📧</span>
+              <div style={{ textAlign: "left" }}>
+                <div style={{ fontSize: "11px", color: "#94a3b8", fontWeight: "bold" }}>EMAIL</div>
+                <div style={{ fontSize: "14px", fontWeight: "600", color: "#334155" }}>
+                  {copyFeedback ? "Copied! ✅" : "ameenjawhares@gmail.com"}
                 </div>
-
-                <div className="contact-row" onClick={() => window.open("https://www.linkedin.com/in/ameen-jawhar", "_blank")}>
-                    <span style={{ fontSize: "20px" }}>💼</span>
-                    <div style={{ textAlign: "left" }}>
-                        <div style={{ fontSize: "11px", color: "#94a3b8", fontWeight: "bold" }}>LINKEDIN</div>
-                        <div style={{ fontSize: "14px", fontWeight: "600", color: "#334155" }}>Message Me</div>
-                    </div>
-                    <span style={{ marginLeft: "auto", fontSize: "12px", color: "#3b82f6" }}>Open</span>
-                </div>
-
-                <button 
-                    style={{ marginTop: "20px", width: "100%", padding: "12px", background: "#f1f5f9", border: "none", borderRadius: "10px", color: "#64748b", fontWeight: "bold", cursor: "pointer" }}
-                    onClick={() => setShowModal(false)}
-                >
-                    Close
-                </button>
+              </div>
+              <span style={{ marginLeft: "auto", fontSize: "12px", color: copyFeedback ? "#22c55e" : "#3b82f6" }}>
+                {copyFeedback ? "✓" : "Copy"}
+              </span>
             </div>
+
+            <div className="contact-row" onClick={() => window.open("https://www.linkedin.com/in/ameen-jawhar", "_blank")}>
+              <span style={{ fontSize: "20px" }}>💼</span>
+              <div style={{ textAlign: "left" }}>
+                <div style={{ fontSize: "11px", color: "#94a3b8", fontWeight: "bold" }}>LINKEDIN</div>
+                <div style={{ fontSize: "14px", fontWeight: "600", color: "#334155" }}>Message Me</div>
+              </div>
+              <span style={{ marginLeft: "auto", fontSize: "12px", color: "#3b82f6" }}>Open</span>
+            </div>
+
+            <button
+              style={{ marginTop: "20px", width: "100%", padding: "12px", background: "#f1f5f9", border: "none", borderRadius: "10px", color: "#64748b", fontWeight: "bold", cursor: "pointer" }}
+              onClick={() => setShowModal(false)}
+            >
+              Close
+            </button>
+          </div>
         </div>
       )}
 
