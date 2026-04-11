@@ -527,14 +527,18 @@ const SettingsManager = () => {
 function DashboardHome() {
   const [stats, setStats] = useState({ students: 0, demographics: {}, library: 0 });
   const [activities, setActivities] = useState([]);
+  const [yearPrompt, setYearPrompt] = useState(false);
+  const [promptYear, setPromptYear] = useState("");
+  const [yearError, setYearError] = useState("");
 
   // NEW — both fetches run in parallel
   useEffect(() => {
     const loadStats = async () => {
       try {
-        const [statsRes, actRes] = await Promise.all([
+        const [statsRes, actRes, yearRes] = await Promise.all([
           fetch(`${API_BASE}/dashboard/stats`),
-          fetch(`${API_BASE}/dashboard/activity`)
+          fetch(`${API_BASE}/dashboard/activity`),
+          fetch(`${API_BASE}/settings/academic-year`)
         ]);
         const statsData = await statsRes.json();
         setStats(statsData);
@@ -542,10 +546,40 @@ function DashboardHome() {
           const actData = await actRes.json();
           setActivities(actData);
         }
+        // First-launch check: if year was never explicitly set by admin, prompt
+        if (yearRes.ok) {
+          const yearData = await yearRes.json();
+          const hasBeenSet = localStorage.getItem('tezaura-year-confirmed');
+          if (!hasBeenSet) {
+            setPromptYear(yearData.academic_year || "2025-26");
+            setYearPrompt(true);
+          }
+        }
       } catch (e) { console.error("Stats error", e); }
     };
     loadStats();
   }, []);
+
+  const validateYear = (val) => /^\d{4}-\d{2}$/.test(val);
+
+  const confirmYear = async () => {
+    if (!validateYear(promptYear)) {
+      setYearError("Format must be YYYY-YY  e.g. 2026-27");
+      return;
+    }
+    try {
+      await fetch(`${API_BASE}/settings/academic-year`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ academic_year: promptYear })
+      });
+      localStorage.setItem('tezaura-year-confirmed', '1');
+      setYearPrompt(false);
+      setYearError("");
+    } catch {
+      setYearError("Failed to save. Check backend connection.");
+    }
+  };
 
   // Helper to choose the right icon/color based on data type
   const getActivityStyle = (type) => {
@@ -562,6 +596,55 @@ function DashboardHome() {
 
   return (
     <div style={{ animation: "fadeIn 0.5s" }}>
+      {/* FIRST-LAUNCH ACADEMIC YEAR PROMPT */}
+      {yearPrompt && (
+        <div style={{
+          position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.6)",
+          backdropFilter: "blur(6px)", display: "flex", alignItems: "center",
+          justifyContent: "center", zIndex: 9000
+        }}>
+          <div style={{
+            background: "#1e1b4b", border: "1px solid rgba(129,140,248,0.4)",
+            borderRadius: "20px", padding: "40px", width: "420px",
+            boxShadow: "0 25px 60px rgba(0,0,0,0.3)", textAlign: "center"
+          }}>
+            <div style={{ fontSize: "48px", marginBottom: "10px" }}>🎓</div>
+            <h2 style={{ margin: "0 0 8px", color: "#ffffff", fontSize: "22px" }}>
+              Welcome to Tezaura!
+            </h2>
+            <p style={{ color: "#cbd5e1", fontSize: "14px", margin: "0 0 24px", lineHeight: 1.6 }}>
+              Please confirm the <strong style={{ color: "#fff" }}>current Academic Year</strong> before using the app.
+              This is saved permanently and can be changed later in Promotion settings.
+            </p>
+            <input
+              value={promptYear}
+              onChange={e => { setPromptYear(e.target.value); setYearError(""); }}
+              placeholder="e.g. 2026-27"
+              style={{
+                width: "100%", fontSize: "24px", fontWeight: "800",
+                textAlign: "center", letterSpacing: "2px", padding: "14px",
+                borderRadius: "10px", marginBottom: "8px",
+                border: yearError ? "2px solid #EF4444" : "2px solid var(--primary)"
+              }}
+            />
+            {yearError && <p style={{ color: "#EF4444", fontSize: "13px", margin: "0 0 12px" }}>{yearError}</p>}
+            <p style={{ color: "#94a3b8", fontSize: "12px", margin: "0 0 20px" }}>
+              Format: YYYY-YY &nbsp;•&nbsp; e.g. 2026-27, 2027-28
+            </p>
+            <button
+              onClick={confirmYear}
+              style={{
+                width: "100%", padding: "14px", borderRadius: "10px",
+                background: "linear-gradient(to right, #4F46E5, #7C3AED)",
+                color: "white", border: "none", fontSize: "16px",
+                fontWeight: "bold", cursor: "pointer"
+              }}
+            >
+              ✅ Confirm & Continue
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ANIMATION STYLES (Pulse Effect) */}
       <style>{`

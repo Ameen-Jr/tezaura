@@ -1484,6 +1484,26 @@ def get_academic_year():
             return {"academic_year": result[0] if result else "2025-26"}
     except Exception as e: return {"academic_year": "2025-26"}
 
+class AcademicYearSchema(BaseModel):
+    academic_year: str
+
+@app.post("/settings/academic-year")
+def set_academic_year(data: AcademicYearSchema):
+    import re
+    if not re.match(r'^\d{4}-\d{2}$', data.academic_year):
+        raise HTTPException(status_code=400, detail="Format must be YYYY-YY e.g. 2026-27")
+    try:
+        with get_db() as connection:
+            cursor = connection.cursor()
+            cursor.execute("""
+                INSERT INTO system_settings (key, value) VALUES ('academic_year', ?)
+                ON CONFLICT(key) DO UPDATE SET value = excluded.value
+            """, (data.academic_year,))
+            connection.commit()
+            return {"status": "success", "academic_year": data.academic_year}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/settings/fees")
 def get_fee_settings():
     try:
