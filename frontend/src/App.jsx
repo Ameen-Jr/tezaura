@@ -530,6 +530,8 @@ function DashboardHome() {
   const [yearPrompt, setYearPrompt] = useState(false);
   const [promptYear, setPromptYear] = useState("");
   const [yearError, setYearError] = useState("");
+  const [feePrompt, setFeePrompt] = useState(false);
+  const [promptFees, setPromptFees] = useState({ fee_class_8: 550, fee_class_9: 550, fee_class_10: 600 });
 
   // NEW — both fetches run in parallel
   useEffect(() => {
@@ -546,7 +548,6 @@ function DashboardHome() {
           const actData = await actRes.json();
           setActivities(actData);
         }
-        // First-launch check: if year was never explicitly set by admin, prompt
         if (yearRes.ok) {
           const yearData = await yearRes.json();
           const hasBeenSet = localStorage.getItem('tezaura-year-confirmed');
@@ -576,9 +577,28 @@ function DashboardHome() {
       localStorage.setItem('tezaura-year-confirmed', '1');
       setYearPrompt(false);
       setYearError("");
+      // Show fee setup next
+      setFeePrompt(true);
     } catch {
       setYearError("Failed to save. Check backend connection.");
     }
+  };
+
+  const confirmFees = async () => {
+    try {
+      await fetch(`${API_BASE}/settings/fees`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...promptFees,
+          fee_class_8_old: promptFees.fee_class_8,
+          fee_class_9_old: promptFees.fee_class_9,
+          fee_class_10_old: promptFees.fee_class_10,
+          fee_class_8_from: "April", fee_class_9_from: "April", fee_class_10_from: "April"
+        })
+      });
+    } catch (e) { console.error(e); }
+    setFeePrompt(false);
   };
 
   // Helper to choose the right icon/color based on data type
@@ -596,6 +616,31 @@ function DashboardHome() {
 
   return (
     <div style={{ animation: "fadeIn 0.5s" }}>
+      {/* FEE SETUP PROMPT */}
+      {feePrompt && (
+        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.7)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9000 }}>
+          <div style={{ background: "#1e1b4b", border: "1px solid rgba(129,140,248,0.4)", borderRadius: "20px", padding: "40px", width: "440px", boxShadow: "0 25px 60px rgba(0,0,0,0.3)", textAlign: "center" }}>
+            <div style={{ fontSize: "48px", marginBottom: "10px" }}>💰</div>
+            <h2 style={{ margin: "0 0 8px", color: "#ffffff", fontSize: "22px" }}>Set Monthly Fees</h2>
+            <p style={{ color: "#cbd5e1", fontSize: "14px", margin: "0 0 24px", lineHeight: 1.6 }}>Set the standard monthly fee for each class. You can change these anytime from the <strong style={{ color: "#fff" }}>Promote Year</strong> section.</p>
+            {[{ label: "Class 8", key: "fee_class_8" }, { label: "Class 9", key: "fee_class_9" }, { label: "Class 10", key: "fee_class_10" }].map(({ label, key }) => (
+              <div key={key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px", background: "rgba(255,255,255,0.06)", borderRadius: "12px", padding: "14px 18px" }}>
+                <span style={{ color: "white", fontWeight: "700", fontSize: "16px" }}>{label}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span style={{ color: "rgba(255,255,255,0.5)", fontSize: "18px" }}>₹</span>
+                  <input type="number" value={promptFees[key]} onChange={e => setPromptFees(prev => ({ ...prev, [key]: parseInt(e.target.value) || 0 }))}
+                    style={{ width: "90px", fontSize: "20px", fontWeight: "800", textAlign: "center", padding: "8px", borderRadius: "8px", border: "2px solid rgba(129,140,248,0.4)", background: "rgba(255,255,255,0.08)", color: "white" }} />
+                </div>
+              </div>
+            ))}
+            <button onClick={confirmFees} style={{ width: "100%", padding: "14px", borderRadius: "12px", background: "linear-gradient(to right,#4F46E5,#7C3AED)", color: "white", border: "none", fontSize: "16px", fontWeight: "bold", cursor: "pointer", marginTop: "10px" }}>
+              ✅ Save & Start Using App
+            </button>
+            <button onClick={() => setFeePrompt(false)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.4)", cursor: "pointer", marginTop: "12px", fontSize: "13px" }}>Skip for now</button>
+          </div>
+        </div>
+      )}
+
       {/* FIRST-LAUNCH ACADEMIC YEAR PROMPT */}
       {yearPrompt && (
         <div style={{
