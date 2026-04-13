@@ -56,6 +56,7 @@ function Analytics() {
   const [marksThreshold, setMarksThreshold] = useState(50);
   const [hoveredStudent, setHoveredStudent] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [mapFullscreen, setMapFullscreen] = useState(false);
   const svgRef = useRef(null);
 
   useEffect(() => {
@@ -202,12 +203,70 @@ function Analytics() {
             ))}
           </div>
 
+          {/* FULLSCREEN MAP OVERLAY */}
+          {mapFullscreen && (
+            <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", backdropFilter: "blur(8px)", zIndex: 5000, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px" }}>
+              <div style={{ width: "100%", maxWidth: "900px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                  <div>
+                    <div style={{ fontSize: "22px", fontWeight: "800", color: "white" }}>Performance Map</div>
+                    <div style={{ fontSize: "13px", color: "rgba(255,255,255,0.5)" }}>Attendance % vs Avg Marks % — Class {classStd} {division}</div>
+                  </div>
+                  <button onClick={() => setMapFullscreen(false)} style={{ padding: "10px 20px", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "white", borderRadius: "10px", cursor: "pointer", fontWeight: "700", fontSize: "14px" }}>✕ Close</button>
+                </div>
+                <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: "20px", padding: "20px", border: "1px solid rgba(255,255,255,0.1)" }}>
+                  <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto" }}>
+                    <rect x={PAD} y={getY(marksThreshold)} width={getX(attThreshold) - PAD} height={getY(0) - getY(marksThreshold)} fill="#fef2f2" opacity="0.3" />
+                    <rect x={getX(attThreshold)} y={PAD} width={W - PAD - getX(attThreshold)} height={getY(marksThreshold) - PAD} fill="#f0fdf4" opacity="0.3" />
+                    {[0, 25, 50, 75, 100].map(v => (
+                      <g key={v}>
+                        <line x1={PAD} y1={getY(v)} x2={W - PAD} y2={getY(v)} stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+                        <text x={PAD - 6} y={getY(v) + 4} fontSize="9" fill="rgba(255,255,255,0.4)" textAnchor="end">{v}%</text>
+                        <line x1={getX(v)} y1={PAD} x2={getX(v)} y2={H - PAD} stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+                        <text x={getX(v)} y={H - PAD + 14} fontSize="9" fill="rgba(255,255,255,0.4)" textAnchor="middle">{v}%</text>
+                      </g>
+                    ))}
+                    <line x1={getX(attThreshold)} y1={PAD} x2={getX(attThreshold)} y2={H - PAD} stroke="#ef4444" strokeWidth="1.5" strokeDasharray="5 3" opacity="0.7" />
+                    <line x1={PAD} y1={getY(marksThreshold)} x2={W - PAD} y2={getY(marksThreshold)} stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="5 3" opacity="0.7" />
+                    <text x={W / 2} y={H - 2} fontSize="10" fill="rgba(255,255,255,0.4)" textAnchor="middle">Attendance %</text>
+                    <text x={10} y={H / 2} fontSize="10" fill="rgba(255,255,255,0.4)" textAnchor="middle" transform={`rotate(-90,10,${H / 2})`}>Avg Marks %</text>
+                    {students.map((s) => {
+                      const zone = getZone(s);
+                      const color = zoneColors[zone];
+                      const cx = getX(s.attendance_pct);
+                      const cy = getY(s.avg_marks_pct);
+                      const isSel = selectedStudent?.adm === s.adm;
+                      return (
+                        <g key={s.adm}>
+                          {isSel && <circle cx={cx} cy={cy} r="14" fill={color} opacity="0.25" />}
+                          <circle cx={cx} cy={cy} r={isSel ? "8" : "5"} fill={color} stroke="rgba(255,255,255,0.8)" strokeWidth="2" style={{ cursor: "pointer" }} onClick={() => setSelectedStudent(s === selectedStudent ? null : s)} />
+                          <text x={cx} y={cy - 10} fontSize="9" fill="rgba(255,255,255,0.7)" textAnchor="middle">{s.name.split(" ")[0]}</text>
+                        </g>
+                      );
+                    })}
+                  </svg>
+                </div>
+                <div style={{ display: "flex", gap: "12px", marginTop: "16px", justifyContent: "center" }}>
+                  {Object.entries(zoneLabels).map(([zone, label]) => (
+                    <div key={zone} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 14px", background: "rgba(255,255,255,0.08)", borderRadius: "20px", border: `1px solid ${zoneColors[zone]}40` }}>
+                      <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: zoneColors[zone] }} />
+                      <span style={{ color: "rgba(255,255,255,0.7)", fontSize: "12px", fontWeight: "600" }}>{label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* SCATTER PLOT + AT RISK LIST */}
           <div className="no-print" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "24px" }}>
 
             {/* SCATTER PLOT */}
             <div className="card-glass no-print" style={{ padding: "20px", backgroundColor: "white" }}>
-              <div style={{ fontSize: "15px", fontWeight: "700", color: "#111827", marginBottom: "4px" }}>Performance Map</div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "4px" }}>
+                <div style={{ fontSize: "15px", fontWeight: "700", color: "#111827" }}>Performance Map</div>
+                <button onClick={() => setMapFullscreen(true)} title="Fullscreen" style={{ padding: "4px 10px", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: "6px", cursor: "pointer", fontSize: "12px", color: "#64748b", fontWeight: "600" }}>⛶ Fullscreen</button>
+              </div>
               <div style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "12px" }}>Attendance % vs Avg Marks % · click a dot to inspect</div>
               <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto" }}>
                 {/* Zone backgrounds */}
