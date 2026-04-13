@@ -1947,6 +1947,11 @@ def get_class_performance(class_std: str, division: str = ""):
 class DriveSettingsSchema(BaseModel):
     folder_id: str
 
+class CentreSettingsSchema(BaseModel):
+    whatsapp_number: str
+    centre_name: str | None = None
+    centre_address: str | None = None
+
 @app.get("/settings/drive-status")
 def get_drive_status():
     try:
@@ -1991,6 +1996,43 @@ def backup_to_drive_now():
             raise HTTPException(status_code=500, detail=result["message"])
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/settings/centre")
+def get_centre_settings():
+    keys = ["centre_whatsapp", "centre_name", "centre_address"]
+    try:
+        with get_db() as connection:
+            cursor = connection.cursor()
+            placeholders = ','.join('?' for _ in keys)
+            cursor.execute(f"SELECT key, value FROM system_settings WHERE key IN ({placeholders})", keys)
+            rows = {r[0]: r[1] for r in cursor.fetchall()}
+            return {
+                "whatsapp_number": rows.get("centre_whatsapp", ""),
+                "centre_name": rows.get("centre_name", "Universal Trust, Kunnuvazhy"),
+                "centre_address": rows.get("centre_address", "")
+            }
+    except Exception as e:
+        return {"whatsapp_number": "", "centre_name": "Universal Trust, Kunnuvazhy", "centre_address": ""}
+
+@app.post("/settings/centre")
+def save_centre_settings(data: CentreSettingsSchema):
+    try:
+        with get_db() as connection:
+            cursor = connection.cursor()
+            pairs = [
+                ("centre_whatsapp", data.whatsapp_number),
+                ("centre_name", data.centre_name or ""),
+                ("centre_address", data.centre_address or ""),
+            ]
+            for key, value in pairs:
+                cursor.execute("""
+                    INSERT INTO system_settings (key, value) VALUES (?, ?)
+                    ON CONFLICT(key) DO UPDATE SET value = excluded.value
+                """, (key, value))
+            connection.commit()
+            return {"status": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

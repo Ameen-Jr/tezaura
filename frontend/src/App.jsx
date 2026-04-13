@@ -407,6 +407,27 @@ const SettingsManager = () => {
   const [currentPass, setCurrentPass] = useState("");
   const [newPass, setNewPass] = useState("");
   const [confirmPass, setConfirmPass] = useState("");
+  const [centreSettings, setCentreSettings] = useState({ whatsapp_number: "", centre_name: "", centre_address: "" });
+  const [centreSaved, setCentreSaved] = useState("");
+
+  useEffect(() => {
+    fetch(`${API_BASE}/settings/centre`)
+      .then(res => res.json())
+      .then(data => setCentreSettings(data))
+      .catch(() => { });
+  }, []);
+
+  const saveCentreSettings = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/settings/centre`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(centreSettings)
+      });
+      if (res.ok) { setCentreSaved("✅ Saved!"); setTimeout(() => setCentreSaved(""), 3000); }
+      else setCentreSaved("❌ Failed.");
+    } catch { setCentreSaved("❌ Connection error."); }
+  };
 
   const handleChangePassword = async () => {
     const storedHash = localStorage.getItem("adminPasswordHash");
@@ -517,8 +538,41 @@ const SettingsManager = () => {
       </div>
 
       <p style={{ marginTop: "30px", fontSize: "13px", color: "#9CA3AF", textAlign: "center" }}>
-        Tezaura Security Protocol • SHA-256 Hashed
+        <div style={{ background: "#f0fdf4", border: "1px solid #86efac", padding: "25px", borderRadius: "12px", marginTop: "24px" }}>
+          <h3 style={{ margin: "0 0 16px 0", color: "#166534", display: "flex", alignItems: "center", gap: "10px", fontSize: "16px" }}>
+            📱 Centre Details (for Progress Cards)
+          </h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+            <div>
+              <label style={{ display: "block", fontSize: "12px", fontWeight: "bold", marginBottom: "5px", color: "#166534" }}>Centre Name</label>
+              <input value={centreSettings.centre_name} onChange={e => setCentreSettings(p => ({ ...p, centre_name: e.target.value }))}
+                style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #86efac", background: "white" }} />
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: "12px", fontWeight: "bold", marginBottom: "5px", color: "#166534" }}>WhatsApp Number <span style={{ fontWeight: "normal", color: "#6b7280" }}>(with country code, no + or spaces)</span></label>
+              <input value={centreSettings.whatsapp_number} onChange={e => setCentreSettings(p => ({ ...p, whatsapp_number: e.target.value }))}
+                placeholder="e.g. 919876543210"
+                style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #86efac", background: "white", fontFamily: "monospace", fontSize: "15px" }} />
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: "12px", fontWeight: "bold", marginBottom: "5px", color: "#166534" }}>Address</label>
+              <input value={centreSettings.centre_address} onChange={e => setCentreSettings(p => ({ ...p, centre_address: e.target.value }))}
+                style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #86efac", background: "white" }} />
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <button onClick={saveCentreSettings} style={{ padding: "10px 24px", background: "#16a34a", color: "white", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" }}>
+                Save Centre Details
+              </button>
+              {centreSaved && <span style={{ fontWeight: "600", color: centreSaved.includes("✅") ? "#16a34a" : "#dc2626" }}>{centreSaved}</span>}
+            </div>
+          </div>
+        </div>
+
+        <p style={{ marginTop: "30px", fontSize: "13px", color: "#9CA3AF", textAlign: "center" }}>
+          Tezaura Security Protocol • SHA-256 Hashed
+        </p>
       </p>
+
     </div>
   );
 };
@@ -532,6 +586,8 @@ function DashboardHome() {
   const [yearError, setYearError] = useState("");
   const [feePrompt, setFeePrompt] = useState(false);
   const [promptFees, setPromptFees] = useState({ fee_class_8: 550, fee_class_9: 550, fee_class_10: 600 });
+  const [centrePrompt, setCentrePrompt] = useState(false);
+  const [promptCentre, setPromptCentre] = useState({ whatsapp_number: "", centre_name: "Universal Trust, Kunnuvazhy", centre_address: "" });
 
   // NEW — both fetches run in parallel
   useEffect(() => {
@@ -599,6 +655,19 @@ function DashboardHome() {
       });
     } catch (e) { console.error(e); }
     setFeePrompt(false);
+    setCentrePrompt(true);
+  };
+
+  const confirmCentre = async () => {
+    if (!promptCentre.whatsapp_number.trim()) { setCentrePrompt(false); return; }
+    try {
+      await fetch(`${API_BASE}/settings/centre`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(promptCentre)
+      });
+    } catch (e) { console.error(e); }
+    setCentrePrompt(false);
   };
 
   // Helper to choose the right icon/color based on data type
@@ -616,6 +685,40 @@ function DashboardHome() {
 
   return (
     <div style={{ animation: "fadeIn 0.5s" }}>
+      {/* FEE SETUP PROMPT */}
+      {centrePrompt && (
+        <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.7)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9000 }}>
+          <div style={{ background: "#0f1f0f", border: "1px solid rgba(34,197,94,0.4)", borderRadius: "20px", padding: "40px", width: "440px", boxShadow: "0 25px 60px rgba(0,0,0,0.3)", textAlign: "center" }}>
+            <div style={{ fontSize: "48px", marginBottom: "10px" }}>📱</div>
+            <h2 style={{ margin: "0 0 8px", color: "#ffffff", fontSize: "22px" }}>Centre WhatsApp Number</h2>
+            <p style={{ color: "#86efac", fontSize: "14px", margin: "0 0 24px", lineHeight: 1.6 }}>This number will appear on progress cards sent to parents. You can change it anytime in Settings.</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "14px", textAlign: "left" }}>
+              <div>
+                <label style={{ fontSize: "11px", fontWeight: "700", color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "1px", display: "block", marginBottom: "6px" }}>Centre Name</label>
+                <input value={promptCentre.centre_name} onChange={e => setPromptCentre(p => ({ ...p, centre_name: e.target.value }))}
+                  style={{ width: "100%", padding: "11px 14px", borderRadius: "10px", border: "1px solid rgba(34,197,94,0.3)", background: "rgba(255,255,255,0.07)", color: "white", fontSize: "14px", boxSizing: "border-box" }} />
+              </div>
+              <div>
+                <label style={{ fontSize: "11px", fontWeight: "700", color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "1px", display: "block", marginBottom: "6px" }}>WhatsApp Number (with country code)</label>
+                <input value={promptCentre.whatsapp_number} onChange={e => setPromptCentre(p => ({ ...p, whatsapp_number: e.target.value }))}
+                  placeholder="e.g. 919876543210"
+                  style={{ width: "100%", padding: "11px 14px", borderRadius: "10px", border: "1px solid rgba(34,197,94,0.3)", background: "rgba(255,255,255,0.07)", color: "white", fontSize: "14px", boxSizing: "border-box" }} />
+              </div>
+              <div>
+                <label style={{ fontSize: "11px", fontWeight: "700", color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "1px", display: "block", marginBottom: "6px" }}>Address (optional)</label>
+                <input value={promptCentre.centre_address} onChange={e => setPromptCentre(p => ({ ...p, centre_address: e.target.value }))}
+                  placeholder="e.g. Kunnuvazhy, Pathanamthitta"
+                  style={{ width: "100%", padding: "11px 14px", borderRadius: "10px", border: "1px solid rgba(34,197,94,0.3)", background: "rgba(255,255,255,0.07)", color: "white", fontSize: "14px", boxSizing: "border-box" }} />
+              </div>
+            </div>
+            <button onClick={confirmCentre} style={{ width: "100%", padding: "14px", borderRadius: "12px", background: "linear-gradient(to right,#16a34a,#15803d)", color: "white", border: "none", fontSize: "16px", fontWeight: "bold", cursor: "pointer", marginTop: "20px" }}>
+              ✅ Save & Finish Setup
+            </button>
+            <button onClick={() => setCentrePrompt(false)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.35)", cursor: "pointer", marginTop: "12px", fontSize: "13px" }}>Skip for now</button>
+          </div>
+        </div>
+      )}
+
       {/* FEE SETUP PROMPT */}
       {feePrompt && (
         <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.7)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9000 }}>
