@@ -4,7 +4,8 @@ import API_BASE from '../config';
 function CustomListMaker() {
     // State for Filters
     const [classStd, setClassStd] = useState("10");
-    const [division, setDivision] = useState("A");
+    const [division, setDivision] = useState("");
+    const [listTitle, setListTitle] = useState("");
 
     // State for Data
     const [students, setStudents] = useState([]);
@@ -53,18 +54,22 @@ function CustomListMaker() {
 
             {/* --- HEADER FOR PRINT --- */}
             <div className="print-header" style={{ display: "none" }}>
-                <h1 style={{ textAlign: "center", margin: "0 0 10px 0" }}>Universal Trust, Kunnuvazhy</h1>
-                <h3 style={{ textAlign: "center", margin: "0", color: "#555" }}>
-                    Class: {classStd} {division ? `(Div ${division})` : ""} | Date: _______________
-                </h3>
+                <h1 style={{ textAlign: "center", margin: "0 0 6px 0", fontSize: "20px" }}>Universal Trust, Kunnuvazhy</h1>
+                <h2 style={{ textAlign: "center", margin: "0 0 4px 0", fontSize: "16px" }}>
+                    {listTitle || "Student List"}
+                </h2>
+                <p style={{ textAlign: "center", margin: "0", fontSize: "13px", color: "#555" }}>
+                    Class: {classStd}{division ? ` — Division ${division}` : ""} &nbsp;|&nbsp; Date: _______________  &nbsp;|&nbsp; Total: {students.length}
+                </p>
+                <hr style={{ margin: "10px 0", borderTop: "2px solid #000" }} />
             </div>
 
             {/* --- CONTROLS (Hidden when printing) --- */}
             <div className="no-print">
                 <style>{`
-                    .cl-pill-btn { padding:9px 20px; border-radius:30px; font-size:14px; font-weight:700; border:2px solid #E5E7EB; cursor:pointer; transition:all 0.2s; background:transparent; color:#6B7280; }
-                    .cl-pill-btn.active { background:#0f172a; color:white; border-color:#0f172a; box-shadow:0 4px 12px rgba(15,23,42,0.3); }
-                    .cl-pill-btn:hover:not(.active) { border-color:#0f172a; color:#0f172a; }
+                    .cl-pill-btn { padding:9px 20px; border-radius:30px; font-size:14px; font-weight:700; border:2px solid rgba(255,255,255,0.2); cursor:pointer; transition:all 0.2s; background:rgba(255,255,255,0.08); color:rgba(255,255,255,0.7); }
+                    .cl-pill-btn.active { background:rgba(255,255,255,0.95); color:#0f172a; border-color:white; box-shadow:0 4px 12px rgba(0,0,0,0.3); }
+                    .cl-pill-btn:hover:not(.active) { border-color:rgba(255,255,255,0.5); color:white; }
                     .col-tag { padding:8px 16px; background:linear-gradient(135deg,#667eea,#764ba2); color:white; border-radius:20px; display:flex; align-items:center; gap:8px; font-weight:700; font-size:13px; box-shadow:0 4px 12px rgba(102,126,234,0.3); }
                     .col-tag-x { cursor:pointer; background:rgba(255,255,255,0.25); border-radius:50%; width:18px; height:18px; display:flex; align-items:center; justify-content:center; font-size:11px; transition:background 0.2s; }
                     .col-tag-x:hover { background:rgba(255,255,255,0.5); }
@@ -81,21 +86,33 @@ function CustomListMaker() {
 
                 <div style={{ background: "linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%)", borderRadius: "20px", padding: "28px", marginBottom: "24px", boxShadow: "0 10px 30px rgba(15,23,42,0.25)" }}>
 
+                    {/* Title Input */}
+                    <div style={{ marginBottom: "20px" }}>
+                        <div style={{ fontSize: "11px", fontWeight: "700", color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "8px" }}>List Title</div>
+                        <input
+                            type="text"
+                            placeholder="e.g. Trip Fund Collection, Book Fee, July Attendance..."
+                            value={listTitle}
+                            onChange={(e) => setListTitle(e.target.value)}
+                            style={{ width: "100%", padding: "12px 16px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.08)", color: "white", fontSize: "15px", fontWeight: "600", outline: "none", boxSizing: "border-box" }}
+                        />
+                    </div>
+
                     {/* Class & Division Row */}
                     <div style={{ display: "flex", gap: "20px", alignItems: "flex-end", flexWrap: "wrap", marginBottom: "24px" }}>
                         <div>
                             <div style={{ fontSize: "11px", fontWeight: "700", color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "8px" }}>Class</div>
                             <div style={{ display: "flex", gap: "8px" }}>
                                 {["8", "9", "10"].map(c => (
-                                    <button key={c} className={`cl-pill-btn ${classStd === c ? "active" : ""}`} style={{ background: classStd === c ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.08)", color: classStd === c ? "#0f172a" : "rgba(255,255,255,0.7)", borderColor: classStd === c ? "white" : "rgba(255,255,255,0.2)" }} onClick={() => setClassStd(c)}>Class {c}</button>
+                                    <button key={c} className={`cl-pill-btn ${classStd === c ? "active" : ""}`} onClick={() => setClassStd(c)}>Class {c}</button>
                                 ))}
                             </div>
                         </div>
                         <div>
                             <div style={{ fontSize: "11px", fontWeight: "700", color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "8px" }}>Division</div>
                             <div style={{ display: "flex", gap: "8px" }}>
-                                {["A", "B", "C"].map(d => (
-                                    <button key={d} className={`cl-pill-btn ${division === d ? "active" : ""}`} style={{ background: division === d ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.08)", color: division === d ? "#0f172a" : "rgba(255,255,255,0.7)", borderColor: division === d ? "white" : "rgba(255,255,255,0.2)" }} onClick={() => setDivision(d)}>{d}</button>
+                                {[{ label: "All", val: "" }, { label: "A", val: "A" }, { label: "B", val: "B" }, { label: "C", val: "C" }].map(d => (
+                                    <button key={d.val} className={`cl-pill-btn ${division === d.val ? "active" : ""}`} onClick={() => setDivision(d.val)}>{d.label}</button>
                                 ))}
                             </div>
                         </div>
@@ -118,7 +135,7 @@ function CustomListMaker() {
                                 onKeyDown={(e) => e.key === "Enter" && addColumn()}
                                 style={{ flex: 1, padding: "12px 16px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.08)", color: "white", fontSize: "14px", outline: "none" }}
                             />
-                            <button onClick={addColumn} style={{ padding: "12px 22px", background: "rgba(255,255,255,0.15)", color: "white", border: "1px solid rgba(255,255,255,0.25)", borderRadius: "12px", cursor: "pointer", fontWeight: "700", fontSize: "14px", whiteSpace: "nowrap", backdropFilter: "blur(10px)" }}>
+                            <button onClick={addColumn} style={{ padding: "12px 22px", background: "rgba(255,255,255,0.15)", color: "white", border: "1px solid rgba(255,255,255,0.25)", borderRadius: "12px", cursor: "pointer", fontWeight: "700", fontSize: "14px", whiteSpace: "nowrap" }}>
                                 + Add
                             </button>
                         </div>
@@ -175,17 +192,30 @@ function CustomListMaker() {
             .no-print { display: none !important; }
             .print-header { display: block !important; }
             .sidebar { display: none !important; }
-            .main-content { margin-left: 0 !important; padding: 0 !important; }
+            .main-content { margin-left: 0 !important; padding: 10px !important; }
             body { background: white !important; }
-            .card-glass { box-shadow: none !important; border: none !important; }
+            .card-glass { box-shadow: none !important; border: none !important; border-radius: 0 !important; }
 
-            /* --- BOLD BORDERS FOR PRINT --- */
-            table { border-collapse: collapse !important; width: 100%; }
-            th, td { 
-                border: 2px solid black !important; 
+            table { border-collapse: collapse !important; width: 100% !important; font-size: 12pt; }
+            th {
+                background-color: #1e293b !important;
+                color: white !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                padding: 10px 12px !important;
+                border: 1px solid #1e293b !important;
+                font-weight: bold;
+                text-align: center !important;
+            }
+            th:nth-child(2) { text-align: left !important; }
+            td {
+                border: 1px solid #94a3b8 !important;
+                padding: 9px 12px !important;
                 color: black !important;
             }
-            th { background-color: #eee !important; -webkit-print-color-adjust: exact; }
+            td:first-child { text-align: center !important; color: #64748b !important; font-size: 11pt; }
+            tr:nth-child(even) td { background-color: #f8fafc !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            tr:last-child td { border-bottom: 2px solid #1e293b !important; }
         }
       `}</style>
 
