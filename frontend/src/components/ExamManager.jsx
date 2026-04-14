@@ -708,11 +708,13 @@ Please find the detailed progress card below. For any queries, feel free to cont
         }
         td:nth-child(2) { text-align: left !important; }
         input { 
-            border: none !important; 
-            font-size: 11pt !important;
-            width: 100% !important;
-            text-align: center !important;
+            display: none !important;
         }
+        .print-only {
+            display: block !important;
+            font-size: 11pt !important;
+            text-align: center !important;
+}
         tr:nth-child(even) td { background-color: #f5f0ff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         h4 { margin: 8px 0 4px 0 !important; font-size: 11pt !important; }
 h4.girls-header { page-break-before: always !important; }
@@ -780,7 +782,10 @@ h4.girls-header { page-break-before: always !important; }
                                                         </div>
                                                     </td>
                                                     {activeTermExam.subjects.map((subj, subjIndex) => (
-                                                        <td key={subj.exam_id} style={{ padding: "2px", textAlign: "center" }}>
+                                                        <td key={subj.exam_id} style={{ padding: "2px", textAlign: "center", position: "relative" }}>
+                                                            <span className="print-only" style={{ display: "none", fontWeight: "bold" }}>
+                                                                {student.marks[subj.exam_id] || ""}
+                                                            </span>
                                                             <input
                                                                 type="number"
                                                                 data-row={absIndex}
