@@ -17,6 +17,9 @@ function ExamManager() {
     // Overall Rank State
     const [selectedExamIds, setSelectedExamIds] = useState([]);
     const [overallRankList, setOverallRankList] = useState([]);
+    // Progress Card State
+    const [progressCard, setProgressCard] = useState(null);
+    const [centreInfo, setCentreInfo] = useState({ centre_name: "Universal Trust, Kunnuvazhy", whatsapp_number: "", centre_address: "" });
     // Term Exam State
     const [termExamName, setTermExamName] = useState("");
     const [termExamDate, setTermExamDate] = useState("");
@@ -229,6 +232,13 @@ function ExamManager() {
         setSelectedExamIds([]);
     }, [classStd, division]);
 
+    useEffect(() => {
+        fetch(`${API_BASE}/settings/centre`)
+            .then(res => res.json())
+            .then(data => setCentreInfo(data))
+            .catch(() => { });
+    }, []);
+
 
 
     // --- NEW: Auto-refresh Mark Sheet when Division changes ---
@@ -319,6 +329,51 @@ function ExamManager() {
         } else {
             setSelectedExamIds([...selectedExamIds, examId]);
         }
+    };
+
+    const openProgressCard = async (student) => {
+        const row = marksheetData.find(s => s.id === student.id) || student;
+        try {
+            const res = await fetch(`${API_BASE}/students/lookup/${student.adm || student.admission_number}`);
+            if (res.ok) {
+                const full = await res.json();
+                setProgressCard({
+                    student: { ...row, whatsapp_number: full.whatsapp_number, father_phone: full.father_phone },
+                    exam: activeTermExam
+                });
+                return;
+            }
+        } catch (e) { }
+
+        setProgressCard({ student: row, exam: activeTermExam });
+    };
+
+    const sendProgressCard = (student, waNumber) => {
+        if (!waNumber) {
+            alert("No WhatsApp number found for this student. Please update the profile first.");
+            return;
+        }
+        const clean = waNumber.replace(/\D/g, '');
+        const number = clean.startsWith('91') ? clean : `91${clean}`;
+
+        const total = activeTermExam.subjects.reduce(
+            (s, subj) => s + (parseFloat(student.marks?.[subj.exam_id]) || 0), 0
+        );
+        const maxTotal = activeTermExam.subjects.reduce((s, subj) => s + subj.max_marks, 0);
+        const pct = maxTotal > 0 ? ((total / maxTotal) * 100).toFixed(1) : "0";
+
+        const msg =
+            `Dear Parent,
+
+${student.name}'s result for *${activeTermExam.name}* is ready.
+
+📊 Total: ${total}/${maxTotal} (${pct}%)
+
+Please find the detailed progress card below. For any queries, feel free to contact us.
+
+— ${centreInfo.centre_name}`;
+
+        window.open(`https://wa.me/${number}?text=${encodeURIComponent(msg)}`, '_blank');
     };
 
     const handleDeleteExam = async (exam) => {
@@ -712,7 +767,18 @@ h4.girls-header { page-break-before: always !important; }
                                             return (
                                                 <tr key={student.id} style={{ borderBottom: "1px solid #eee", backgroundColor: index % 2 === 0 ? "#fafafa" : "white" }}>
                                                     <td style={{ padding: "8px", color: "#999" }}>{index + 1}</td>
-                                                    <td style={{ padding: "8px", fontWeight: "bold" }}>{student.name}</td>
+                                                    <td style={{ padding: "8px", fontWeight: "bold" }}>
+                                                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px" }}>
+                                                            <span>{student.name}</span>
+                                                            <button
+                                                                onClick={() => openProgressCard(student)}
+                                                                className="no-print"
+                                                                title="Send Progress Card"
+                                                                style={{ padding: "2px 8px", background: "#f0fdf4", color: "#16a34a", border: "1px solid #86efac", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>
+                                                                📲
+                                                            </button>
+                                                        </div>
+                                                    </td>
                                                     {activeTermExam.subjects.map((subj, subjIndex) => (
                                                         <td key={subj.exam_id} style={{ padding: "2px", textAlign: "center" }}>
                                                             <input
@@ -812,6 +878,158 @@ h4.girls-header { page-break-before: always !important; }
                     </div>
                 </div>
             )}
+
+            {progressCard && progressCard.exam && (
+                <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 3000, padding: "20px" }}>
+                    <div style={{ backgroundColor: "white", borderRadius: "20px", width: "540px", maxHeight: "92vh", overflowY: "auto", boxShadow: "0 30px 60px rgba(0,0,0,0.4)" }}>
+
+                        {/* Modal Header */}
+                        <div style={{ padding: "18px 24px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, backgroundColor: "white", zIndex: 10, borderRadius: "20px 20px 0 0" }}>
+                            <div style={{ fontWeight: "800", fontSize: "16px", color: "#111827" }}>📄 Progress Card — {progressCard.student.name}</div>
+                            <button onClick={() => setProgressCard(null)} style={{ background: "#f1f5f9", border: "none", borderRadius: "8px", padding: "6px 14px", cursor: "pointer", fontWeight: "700", color: "#6b7280", fontSize: "13px" }}>✕ Close</button>
+                        </div>
+
+                        {/* THE CARD CONTENT */}
+                        <div id="progress-card-content" style={{ padding: "32px", fontFamily: "'Segoe UI', Arial, sans-serif" }}>
+
+                            {/* Centre Header */}
+                            <div style={{ textAlign: "center", paddingBottom: "18px", marginBottom: "20px", borderBottom: "3px double #1e293b" }}>
+                                <div style={{ fontSize: "22px", fontWeight: "900", color: "#1e293b", letterSpacing: "0.5px" }}>
+                                    {centreInfo.centre_name}
+                                </div>
+                                {centreInfo.centre_address && (
+                                    <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "3px" }}>
+                                        {centreInfo.centre_address}
+                                    </div>
+                                )}
+                                {centreInfo.whatsapp_number && (
+                                    <div style={{ fontSize: "12px", color: "#6b7280" }}>
+                                        WhatsApp: {centreInfo.whatsapp_number}
+                                    </div>
+                                )}
+                                <div style={{ marginTop: "12px" }}>
+                                    <span style={{ display: "inline-block", background: "#1e293b", color: "white", padding: "4px 20px", borderRadius: "20px", fontSize: "12px", fontWeight: "700", letterSpacing: "2px", textTransform: "uppercase" }}>
+                                        Progress Report
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Student Info Grid */}
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "22px" }}>
+                                {[
+                                    { label: "Student Name", value: progressCard.student.name },
+                                    { label: "Class", value: `${classStd}${division ? ` — Division ${division}` : ""}` },
+                                    { label: "Exam", value: progressCard.exam.name },
+                                    { label: "Date", value: progressCard.exam.date },
+                                ].map(item => (
+                                    <div key={item.label} style={{ padding: "10px 14px", backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+                                        <div style={{ fontSize: "10px", fontWeight: "700", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: "3px" }}>{item.label}</div>
+                                        <div style={{ fontSize: "14px", fontWeight: "700", color: "#1e293b" }}>{item.value}</div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Marks Table */}
+                            <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "20px", fontSize: "13px" }}>
+                                <thead>
+                                    <tr style={{ backgroundColor: "#1e293b" }}>
+                                        <th style={{ padding: "10px 14px", textAlign: "left", color: "white", fontWeight: "700" }}>Subject</th>
+                                        <th style={{ padding: "10px 14px", textAlign: "center", color: "white", fontWeight: "700" }}>Obtained</th>
+                                        <th style={{ padding: "10px 14px", textAlign: "center", color: "white", fontWeight: "700" }}>Maximum</th>
+                                        <th style={{ padding: "10px 14px", textAlign: "center", color: "white", fontWeight: "700" }}>%</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {progressCard.exam.subjects.map((subj, i) => {
+                                        const obtained = parseFloat(progressCard.student.marks?.[subj.exam_id]) || 0;
+                                        const pct = subj.max_marks > 0 ? ((obtained / subj.max_marks) * 100).toFixed(1) : "—";
+                                        const good = parseFloat(pct) >= 50;
+                                        return (
+                                            <tr key={i} style={{ borderBottom: "1px solid #f1f5f9", backgroundColor: i % 2 === 0 ? "white" : "#f8fafc" }}>
+                                                <td style={{ padding: "10px 14px", fontWeight: "600", color: "#374151" }}>{subj.subject}</td>
+                                                <td style={{ padding: "10px 14px", textAlign: "center", fontWeight: "800", fontSize: "15px", color: good ? "#059669" : "#dc2626" }}>{obtained}</td>
+                                                <td style={{ padding: "10px 14px", textAlign: "center", color: "#6b7280" }}>{subj.max_marks}</td>
+                                                <td style={{ padding: "10px 14px", textAlign: "center" }}>
+                                                    <span style={{ padding: "2px 10px", borderRadius: "12px", fontSize: "12px", fontWeight: "700", backgroundColor: good ? "#ecfdf5" : "#fef2f2", color: good ? "#059669" : "#dc2626" }}>
+                                                        {pct}%
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                                <tfoot>
+                                    {(() => {
+                                        const total = progressCard.exam.subjects.reduce((s, subj) => s + (parseFloat(progressCard.student.marks?.[subj.exam_id]) || 0), 0);
+                                        const maxTotal = progressCard.exam.subjects.reduce((s, subj) => s + subj.max_marks, 0);
+                                        const pct = maxTotal > 0 ? ((total / maxTotal) * 100).toFixed(1) : "—";
+                                        const good = parseFloat(pct) >= 50;
+                                        return (
+                                            <tr style={{ backgroundColor: "#1e293b" }}>
+                                                <td style={{ padding: "11px 14px", color: "white", fontWeight: "800" }}>TOTAL</td>
+                                                <td style={{ padding: "11px 14px", textAlign: "center", color: "white", fontWeight: "900", fontSize: "16px" }}>{total}</td>
+                                                <td style={{ padding: "11px 14px", textAlign: "center", color: "white", fontWeight: "800" }}>{maxTotal}</td>
+                                                <td style={{ padding: "11px 14px", textAlign: "center" }}>
+                                                    <span style={{ padding: "3px 12px", borderRadius: "12px", fontSize: "13px", fontWeight: "800", backgroundColor: good ? "#ecfdf5" : "#fef2f2", color: good ? "#059669" : "#dc2626" }}>
+                                                        {pct}%
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })()}
+                                </tfoot>
+                            </table>
+
+                            {/* Card Footer */}
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", paddingTop: "14px", borderTop: "1px solid #e2e8f0" }}>
+                                <div style={{ fontSize: "11px", color: "#94a3b8" }}>
+                                    Generated by Tezaura &nbsp;•&nbsp; {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                </div>
+                                <div style={{ textAlign: "center" }}>
+                                    <div style={{ width: "130px", borderTop: "1px solid #374151", paddingTop: "5px", fontSize: "11px", color: "#6b7280" }}>
+                                        Class Teacher
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div style={{ padding: "16px 24px", borderTop: "1px solid #f1f5f9", display: "flex", gap: "12px", backgroundColor: "#f8fafc", borderRadius: "0 0 20px 20px" }}>
+                            <button
+                                onClick={() => {
+                                    const w = window.open('', '_blank');
+                                    const content = document.getElementById('progress-card-content').innerHTML;
+                                    w.document.write(`<!DOCTYPE html><html><head><title>Progress Card - ${progressCard.student.name}</title>
+                                    <style>
+                                        * { box-sizing: border-box; margin: 0; padding: 0; }
+                                        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; color: #1e293b; }
+                                        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; }
+                                        th { padding: 10px 14px; background-color: #1e293b !important; color: white !important; font-weight: 700; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                                        td { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; }
+                                        @media print { body { padding: 15px; } }
+                                    </style>
+                                    </head><body>${content}
+                                    <script>window.onload = () => { window.print(); }<\/script>
+                                    </body></html>`);
+                                    w.document.close();
+                                }}
+                                style={{ flex: 1, padding: "13px", background: "#1e293b", color: "white", border: "none", borderRadius: "10px", fontWeight: "700", cursor: "pointer", fontSize: "14px" }}>
+                                🖨️ Print / Save as PDF
+                            </button>
+                            <button
+                                onClick={() => sendProgressCard(
+                                    progressCard.student,
+                                    progressCard.student.whatsapp_number || progressCard.student.father_phone
+                                )}
+                                style={{ flex: 1, padding: "13px", background: "linear-gradient(135deg, #16a34a, #15803d)", color: "white", border: "none", borderRadius: "10px", fontWeight: "700", cursor: "pointer", fontSize: "14px", boxShadow: "0 4px 12px rgba(22,163,74,0.4)" }}>
+                                📲 Send via WhatsApp
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            )
+            }
 
         </div>
     );
