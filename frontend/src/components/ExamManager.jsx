@@ -692,33 +692,39 @@ Please find the detailed progress card below. For any queries, feel free to cont
     input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
     
     @media print {
-        table { border-collapse: collapse !important; width: 100% !important; }
-        th { 
-            background-color: #4a235a !important; 
-            color: white !important; 
-            border: 2px solid #000 !important; 
-            padding: 6px 4px !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-        }
-        td { 
-            border: 1.5px solid #555 !important; 
-            padding: 5px 4px !important; 
-            text-align: center !important;
-        }
-        td:nth-child(2) { text-align: left !important; }
-        input { 
-            display: none !important;
-        }
-        .print-only {
-            display: block !important;
-            font-size: 11pt !important;
-            text-align: center !important;
-}
-        tr:nth-child(even) td { background-color: #f5f0ff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        h4 { margin: 8px 0 4px 0 !important; font-size: 11pt !important; }
-h4.girls-header { page-break-before: always !important; }
+    @page { size: A4 landscape; margin: 10mm 8mm; }
+    table { border-collapse: collapse !important; width: 100% !important; table-layout: fixed !important; }
+    th {
+        background-color: #000 !important;
+        color: #fff !important;
+        border: 1.5px solid #000 !important;
+        padding: 5px 3px !important;
+        font-size: 9pt !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        word-break: break-word;
     }
+    td {
+        border: 1px solid #555 !important;
+        padding: 4px 3px !important;
+        text-align: center !important;
+        font-size: 9pt !important;
+        word-break: break-word;
+    }
+    td:nth-child(2) { text-align: left !important; font-weight: bold !important; }
+    input { display: none !important; }
+    .print-only {
+        display: block !important;
+        font-size: 9pt !important;
+        text-align: center !important;
+        font-weight: bold;
+    }
+    tr:nth-child(even) td { background-color: #f0f0f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    h4 { margin: 6px 0 4px 0 !important; font-size: 10pt !important; color: #000 !important; }
+    h4.girls-header { page-break-before: always !important; }
+    .no-print { display: none !important; }
+    .print-header { display: block !important; text-align: center; margin-bottom: 8px; font-size: 11pt; font-weight: bold; }
+}
 `}</style>
                     <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "10px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -757,7 +763,7 @@ h4.girls-header { page-break-before: always !important; }
                                                     <span style={{ fontSize: "10px", opacity: 0.8 }}>/{s.max_marks}</span>
                                                 </th>
                                             ))}
-                                            <th style={{ padding: "6px", textAlign: "center", width: "6%" }}>Total</th>
+                                            <th style={{ padding: "6px", textAlign: "center", width: "6%" }}>Total<br /><span style={{ fontSize: "10px", opacity: 0.8 }}>/{maxTotal}</span></th>
                                             <th style={{ padding: "6px", textAlign: "center", width: "5%" }}>%</th>
                                         </tr>
                                     </thead>
@@ -811,7 +817,7 @@ h4.girls-header { page-break-before: always !important; }
                                                             />
                                                         </td>
                                                     ))}
-                                                    <td style={{ padding: "8px", textAlign: "center", fontWeight: "bold" }}>{total} / {maxTotal}</td>
+                                                    <td style={{ padding: "8px", textAlign: "center", fontWeight: "bold" }}>{total}</td>
                                                     <td style={{ padding: "8px", textAlign: "center", fontWeight: "bold", color: pct >= 50 ? "#27ae60" : "#e74c3c" }}>{pct}%</td>
                                                 </tr>
                                             );
