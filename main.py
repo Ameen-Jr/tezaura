@@ -76,6 +76,7 @@ class UpdateStudentSchema(BaseModel):
     panchayat: str | None = None
     remarks: str | None = None
     sslc_number: str | None = None
+    activities: str | None = None
 
 class AttendanceRecord(BaseModel):
     student_id: int
@@ -202,7 +203,7 @@ def search_students(query: str, power_search: bool = False):
                 admission_number, name, class_standard, division, gender, address, school_name, dob,
                 father_name, father_occupation, father_phone, 
                 mother_name, mother_occupation, mother_phone, 
-                whatsapp_number, bus_stop, panchayat, remarks, photo_path, sslc_number
+                whatsapp_number, bus_stop, panchayat, remarks, photo_path, sslc_number, activities
             FROM students 
             WHERE (name LIKE ? OR admission_number LIKE ?) {status_filter}
             """
@@ -235,7 +236,8 @@ def search_students(query: str, power_search: bool = False):
                     "panchayat": row[16],
                     "remarks": row[17],
                     "photo_path": row[18],
-                    "sslc_number": row[19]
+                    "sslc_number": row[19],
+                    "activities": row[20]
                 })
             return {"count": len(students_found), "results": students_found}
     except Exception as e:
@@ -303,7 +305,8 @@ def add_student(
     panchayat: str = Form(None),
     remarks: str = Form(None),
     sslc_number: str = Form(None),
-    admission_date: str = Form(None),  # <--- NEW FIELD
+    activities: str = Form(None),
+    admission_date: str = Form(None),
     photo: UploadFile = File(None)
 ):
     try:
@@ -330,14 +333,14 @@ def add_student(
                 admission_number, name, class_standard, division, gender, address, school_name, dob,
                 father_name, father_occupation, father_phone, 
                 mother_name, mother_occupation, mother_phone, 
-                whatsapp_number, bus_stop, panchayat, remarks, sslc_number, photo_path, is_active, admission_date
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+                whatsapp_number, bus_stop, panchayat, remarks, sslc_number, photo_path, is_active, admission_date, activities
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
             """
             values = (
                 admission_number, name, class_standard, division, gender, address, school_name, dob,
                 father_name, father_occupation, father_phone,
                 mother_name, mother_occupation, mother_phone,
-                whatsapp_number, bus_stop, panchayat, remarks, sslc_number, photo_path, admission_date
+                whatsapp_number, bus_stop, panchayat, remarks, sslc_number, photo_path, admission_date, activities
             )
             cursor.execute(sql, values)
             connection.commit()
@@ -358,14 +361,14 @@ def update_student(admission_number: str, student: UpdateStudentSchema):
                 name=?, class_standard=?, division=?, gender=?, dob=?, school_name=?, address=?,
                 father_name=?, father_occupation=?, father_phone=?,
                 mother_name=?, mother_occupation=?, mother_phone=?,
-                whatsapp_number=?, bus_stop=?, panchayat=?, remarks=?, sslc_number=?
+                whatsapp_number=?, bus_stop=?, panchayat=?, remarks=?, sslc_number=?, activities=?
             WHERE admission_number=?
             """
             values = (
                 student.name, student.class_standard, student.division, student.gender, student.dob, student.school_name, student.address,
                 student.father_name, student.father_occupation, student.father_phone,
                 student.mother_name, student.mother_occupation, student.mother_phone,
-                student.whatsapp_number, student.bus_stop, student.panchayat, student.remarks, student.sslc_number,
+                student.whatsapp_number, student.bus_stop, student.panchayat, student.remarks, student.sslc_number, student.activities,
                 admission_number
             )
             cursor.execute(sql, values)
@@ -1277,13 +1280,13 @@ def get_student_details_any(admission_number: str):
         with get_db() as connection:
             cursor = connection.cursor()
             
-            # --- UPDATED SQL: Added 'admission_date' to the end ---
             sql_query = """
             SELECT 
                 admission_number, name, class_standard, division, gender, address, school_name, dob,
                 father_name, father_occupation, father_phone, 
                 mother_name, mother_occupation, mother_phone, 
-                whatsapp_number, bus_stop, panchayat, remarks, photo_path, sslc_number, admission_date, id, is_active
+                whatsapp_number, bus_stop, panchayat, remarks, photo_path, sslc_number, admission_date, id, is_active,
+                activities
             FROM students 
             WHERE admission_number = ?
             """
@@ -1300,7 +1303,7 @@ def get_student_details_any(admission_number: str):
                 "mother_name": row[11], "mother_occupation": row[12], "mother_phone": row[13],
                 "whatsapp_number": row[14], "bus_stop": row[15], "panchayat": row[16],
                 "remarks": row[17], "photo_path": row[18], "sslc_number": row[19],
-                "admission_date": row[20], "id": row[21], "is_active": row[22]
+                "admission_date": row[20], "id": row[21], "is_active": row[22], "activities": row[23] if len(row) > 23 else None 
             }
 
             # 2. STEP 3 LOGIC: Check why they left (if inactive)

@@ -8,7 +8,7 @@ function AddStudent() {
         father_name: "", father_occupation: "", father_phone: "",
         mother_name: "", mother_occupation: "", mother_phone: "",
         whatsapp_number: "", bus_stop: "", panchayat: "", remarks: "",
-        sslc_number: "",
+        sslc_number: "", activities: "",
         admission_date: new Date().toISOString().split('T')[0]
     });
 
@@ -61,6 +61,16 @@ function AddStudent() {
         }
     };
 
+    const ACTIVITY_OPTIONS = ["SPC", "NCC", "Scouts & Guides", "Little Kites", "Other"];
+
+    const handleActivityToggle = (activity) => {
+        const current = formData.activities ? formData.activities.split(",").map(a => a.trim()).filter(Boolean) : [];
+        const updated = current.includes(activity)
+            ? current.filter(a => a !== activity)
+            : [...current, activity];
+        setFormData({ ...formData, activities: updated.join(", ") });
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setMessage("⏳ Saving...");
@@ -84,7 +94,7 @@ function AddStudent() {
                     name: "",
                     father_name: "", father_occupation: "", father_phone: "",
                     mother_name: "", mother_occupation: "", mother_phone: "",
-                    address: "", remarks: "", sslc_number: "", bus_stop: "", panchayat: "", school_name: ""
+                    address: "", remarks: "", sslc_number: "", bus_stop: "", panchayat: "", school_name: "", activities: ""
                 });
 
                 setPhoto(null);
@@ -243,7 +253,7 @@ function AddStudent() {
                             {/* Full Name */}
                             <div>
                                 <label className="adm-label">Full Name of Student *</label>
-                                <input className="adm-input" name="name" value={formData.name} onChange={handleChange} required placeholder="e.g. Arjun Krishna" style={{ fontSize: "18px !important", fontWeight: "700" }} />
+                                <input className="adm-input" name="name" value={formData.name} onChange={handleChange} required placeholder="Eg: Sanju Samson" style={{ fontSize: "18px !important", fontWeight: "700" }} />
                             </div>
 
                             <div className="adm-grid-2">
@@ -368,6 +378,38 @@ function AddStudent() {
                         <span style={{ fontSize: "18px" }}>📝</span> Additional Info
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                        {/* --- ADDED ACTIVITIES SECTION --- */}
+                        <div>
+                            <label className="adm-label">Activities & Groups</label>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "4px" }}>
+                                {["SPC", "NCC", "Scouts & Guides", "Little Kites", "Other"].map(act => {
+                                    const active = formData.activities.split(",").map(a => a.trim()).includes(act);
+                                    return (
+                                        <button
+                                            key={act}
+                                            type="button"
+                                            onClick={() => handleActivityToggle(act)}
+                                            style={{
+                                                padding: "8px 16px",
+                                                borderRadius: "20px",
+                                                fontSize: "13px",
+                                                fontWeight: "700",
+                                                border: "2px solid",
+                                                cursor: "pointer",
+                                                transition: "all 0.2s",
+                                                backgroundColor: active ? "#EEF2FF" : "transparent",
+                                                color: active ? "#4F46E5" : "#6B7280",
+                                                borderColor: active ? "#4F46E5" : "#E5E7EB"
+                                            }}
+                                        >
+                                            {active ? "✓ " : "+ "} {act}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                        {/* --- END ACTIVITIES --- */}
+
                         <div>
                             <label className="adm-label">Remarks</label>
                             <input className="adm-input" name="remarks" value={formData.remarks} onChange={handleChange} placeholder="Medical issues, talents, or other notes..." />

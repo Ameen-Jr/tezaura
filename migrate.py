@@ -72,6 +72,7 @@ def run_migrations():
     add_column_if_missing(cursor, "students", "sslc_number", "TEXT DEFAULT NULL")
     add_column_if_missing(cursor, "students", "is_active", "INTEGER DEFAULT 1")
     add_column_if_missing(cursor, "students", "admission_date", "TEXT")
+    add_column_if_missing(cursor, "students", "activities", "TEXT DEFAULT NULL")
 
     # Attendance table
     add_column_if_missing(cursor, "attendance", "session", "TEXT DEFAULT 'Day'")

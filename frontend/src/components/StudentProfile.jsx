@@ -106,6 +106,21 @@ function StudentProfile({ student, onBack }) {
         setEditData({ ...editData, [e.target.name]: e.target.value });
     };
 
+    const ACTIVITY_OPTIONS = ["SPC", "NCC", "Scouts & Guides", "Little Kites", "Other"];
+
+    const handleActivityToggle = (activity) => {
+        const current = editData.activities ? editData.activities.split(",").map(a => a.trim()).filter(Boolean) : [];
+        const updated = current.includes(activity)
+            ? current.filter(a => a !== activity)
+            : [...current, activity];
+        setEditData({ ...editData, activities: updated.join(", ") });
+    };
+
+    const getActiveActivities = () => {
+        if (!editData.activities) return [];
+        return editData.activities.split(",").map(a => a.trim()).filter(Boolean);
+    };
+
     const handleSslcChange = (key, value) => {
         const newData = { ...sslcData, [key]: value };
         setSslcData(newData);
@@ -318,6 +333,32 @@ function StudentProfile({ student, onBack }) {
                     <p><strong>Bus Stop:</strong> {isEditing ? <input name="bus_stop" value={editData.bus_stop || ""} onChange={handleChange} style={inputStyle} /> : editData.bus_stop}</p>
                     <p><strong>Panchayat:</strong> {isEditing ? <input name="panchayat" value={editData.panchayat || ""} onChange={handleChange} style={inputStyle} /> : editData.panchayat}</p>
                     <p><strong>Gender:</strong> {isEditing ? <select name="gender" value={editData.gender} onChange={handleChange} style={inputStyle}><option value="Male">Male</option><option value="Female">Female</option></select> : editData.gender}</p>
+
+                    <div style={{ marginTop: "10px" }}>
+                        <strong>Activities / Groups:</strong>
+                        {isEditing ? (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "8px" }}>
+                                {ACTIVITY_OPTIONS.map(act => {
+                                    const active = getActiveActivities().includes(act);
+                                    return (
+                                        <label key={act} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "5px 12px", borderRadius: "20px", border: `1.5px solid ${active ? "#4F46E5" : "#D1D5DB"}`, backgroundColor: active ? "#EEF2FF" : "white", cursor: "pointer", fontSize: "13px", fontWeight: "600", color: active ? "#4F46E5" : "#6B7280", transition: "all 0.15s" }}>
+                                            <input type="checkbox" checked={active} onChange={() => handleActivityToggle(act)} style={{ display: "none" }} />
+                                            {active ? "✓" : "+"} {act}
+                                        </label>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "6px" }}>
+                                {getActiveActivities().length > 0
+                                    ? getActiveActivities().map(act => (
+                                        <span key={act} style={{ padding: "4px 12px", backgroundColor: "#EEF2FF", color: "#4F46E5", borderRadius: "20px", fontSize: "12px", fontWeight: "700", border: "1px solid #C7D2FE" }}>{act}</span>
+                                    ))
+                                    : <span style={{ color: "#9CA3AF", fontSize: "13px", fontStyle: "italic" }}>None</span>
+                                }
+                            </div>
+                        )}
+                    </div>
 
                     <div style={{ marginTop: "10px" }}>
                         <strong>Remarks:</strong>
