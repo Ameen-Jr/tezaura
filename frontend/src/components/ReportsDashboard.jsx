@@ -104,6 +104,13 @@ function ReportsDashboard({ onViewProfile }) {
 
     const daysInMonth = Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, '0'));
 
+    const monthIndex = ["January","February","March","April","May","June","July","August","September","October","November","December"].indexOf(month);
+    const dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+    const getDayName = (dayNum) => {
+        const d = new Date(parseInt(year), monthIndex, parseInt(dayNum));
+        return dayNames[d.getDay()];
+    };
+
     return (
         <div style={{ width: "98%", margin: "0 auto", padding: "10px", fontFamily: "sans-serif" }}>
 
@@ -395,13 +402,16 @@ function ReportsDashboard({ onViewProfile }) {
                                             <th
                                                 key={day}
                                                 style={{
-                                                    textAlign: "center", padding: "8px 0", cursor: "default",
+                                                    textAlign: "center", padding: "4px 0", cursor: "default",
                                                     backgroundColor: hoveredDay === day ? "#374151" : "transparent"
                                                 }}
                                                 onMouseEnter={() => setHoveredDay(day)}
                                                 onMouseLeave={() => setHoveredDay(null)}
                                             >
-                                                {parseInt(day)}
+                                                <div style={{ lineHeight: 1.2 }}>
+                                                    <span style={{ display: "block", fontSize: "10px", fontWeight: "bold" }}>{parseInt(day)}</span>
+                                                    <span style={{ display: "block", fontSize: "8px", opacity: 0.75, fontWeight: "normal" }}>{getDayName(day)}</span>
+                                                </div>
                                             </th>
                                         ))}
                                         <th style={{ width: "3%", backgroundColor: "#065F46" }}>P</th>
