@@ -76,6 +76,14 @@ function ExamManager() {
         } catch (err) { console.error(err); }
     };
 
+    const isFailMark = (obtained, maxMarks) => {
+        const o = parseFloat(obtained) || 0;
+        if (maxMarks <= 20) return o < 6;
+        if (maxMarks <= 40) return o < 12;
+        if (maxMarks <= 80) return o < 24;
+        return false;
+    };
+
     const openTermMarksheet = async (termExam) => {
         setActiveTermExam(termExam);
         setMessage("⏳ Loading marksheet...");
@@ -787,40 +795,44 @@ Please find the detailed progress card below. For any queries, feel free to cont
                                                             </button>
                                                         </div>
                                                     </td>
-                                                    {activeTermExam.subjects.map((subj, subjIndex) => (
-                                                        <td key={subj.exam_id} style={{ padding: "2px", textAlign: "center", position: "relative" }}>
-                                                            <span className="print-only" style={{ display: "none", fontWeight: "bold" }}>
-                                                                {student.marks[subj.exam_id] || ""}
-                                                            </span>
-                                                            <input
-                                                                type="number"
-                                                                data-row={absIndex}
-                                                                data-col={subjIndex}
-                                                                value={student.marks[subj.exam_id]}
-                                                                onChange={e => {
-                                                                    const val = e.target.value;
-                                                                    if (val.length > 2) return;
-                                                                    handleMarksheetChange(student.id, subj.exam_id, val);
-                                                                }}
-                                                                onKeyDown={e => {
-                                                                    const totalCols = activeTermExam.subjects.length;
-                                                                    const totalRows = getSortedMarksheet().length;
-                                                                    let row = absIndex, col = subjIndex;
-                                                                    if (e.key === "ArrowRight" || (e.key === "Enter" && !e.shiftKey)) { col = Math.min(col + 1, totalCols - 1); }
-                                                                    else if (e.key === "ArrowLeft") { col = Math.max(col - 1, 0); }
-                                                                    else if (e.key === "ArrowDown") { row = Math.min(row + 1, totalRows - 1); }
-                                                                    else if (e.key === "ArrowUp") { row = Math.max(row - 1, 0); }
-                                                                    else return;
-                                                                    e.preventDefault();
-                                                                    const next = document.querySelector(`input[data-row="${row}"][data-col="${col}"]`);
-                                                                    if (next) next.focus();
-                                                                }}
-                                                                style={{ width: "100%", padding: "4px 2px", textAlign: "center", border: "1px solid #ddd", borderRadius: "3px", fontSize: "15px", boxSizing: "border-box", MozAppearance: "textfield", appearance: "textfield" }}
-                                                                min="0"
-                                                                max={subj.max_marks}
-                                                            />
-                                                        </td>
-                                                    ))}
+                                                    {activeTermExam.subjects.map((subj, subjIndex) => {
+                                                        const cellVal = student.marks[subj.exam_id];
+                                                        const failing = isFailMark(cellVal, subj.max_marks);
+                                                        return (
+                                                            <td key={subj.exam_id} style={{ padding: "2px", textAlign: "center", position: "relative" }}>
+                                                                <span className="print-only" style={{ display: "none", fontWeight: "bold", color: failing ? "red" : "inherit" }}>
+                                                                    {cellVal || ""}
+                                                                </span>
+                                                                <input
+                                                                    type="number"
+                                                                    data-row={absIndex}
+                                                                    data-col={subjIndex}
+                                                                    value={student.marks[subj.exam_id]}
+                                                                    onChange={e => {
+                                                                        const val = e.target.value;
+                                                                        if (val.length > 2) return;
+                                                                        handleMarksheetChange(student.id, subj.exam_id, val);
+                                                                    }}
+                                                                    onKeyDown={e => {
+                                                                        const totalCols = activeTermExam.subjects.length;
+                                                                        const totalRows = getSortedMarksheet().length;
+                                                                        let row = absIndex, col = subjIndex;
+                                                                        if (e.key === "ArrowRight" || (e.key === "Enter" && !e.shiftKey)) { col = Math.min(col + 1, totalCols - 1); }
+                                                                        else if (e.key === "ArrowLeft") { col = Math.max(col - 1, 0); }
+                                                                        else if (e.key === "ArrowDown") { row = Math.min(row + 1, totalRows - 1); }
+                                                                        else if (e.key === "ArrowUp") { row = Math.max(row - 1, 0); }
+                                                                        else return;
+                                                                        e.preventDefault();
+                                                                        const next = document.querySelector(`input[data-row="${row}"][data-col="${col}"]`);
+                                                                        if (next) next.focus();
+                                                                    }}
+                                                                    style={{ width: "100%", padding: "4px 2px", textAlign: "center", border: "1px solid #ddd", borderRadius: "3px", fontSize: "15px", boxSizing: "border-box", MozAppearance: "textfield", appearance: "textfield" }}
+                                                                    min="0"
+                                                                    max={subj.max_marks}
+                                                                />
+                                                            </td>
+                                                        );
+                                                    })}
                                                     <td style={{ padding: "8px", textAlign: "center", fontWeight: "bold" }}>{total}</td>
                                                     <td style={{ padding: "8px", textAlign: "center", fontWeight: "bold", color: pct >= 50 ? "#27ae60" : "#e74c3c" }}>{pct}%</td>
                                                 </tr>
@@ -959,10 +971,11 @@ Please find the detailed progress card below. For any queries, feel free to cont
                                         const obtained = parseFloat(progressCard.student.marks?.[subj.exam_id]) || 0;
                                         const pct = subj.max_marks > 0 ? ((obtained / subj.max_marks) * 100).toFixed(1) : "—";
                                         const good = parseFloat(pct) >= 50;
+                                        const failing = isFailMark(obtained, subj.max_marks);
                                         return (
                                             <tr key={i} style={{ borderBottom: "1px solid #f1f5f9", backgroundColor: i % 2 === 0 ? "white" : "#f8fafc" }}>
                                                 <td style={{ padding: "10px 14px", fontWeight: "600", color: "#374151" }}>{subj.subject}</td>
-                                                <td style={{ padding: "10px 14px", textAlign: "center", fontWeight: "800", fontSize: "15px", color: good ? "#059669" : "#dc2626" }}>{obtained}</td>
+                                                <td style={{ padding: "10px 14px", textAlign: "center", fontWeight: "800", fontSize: "15px", color: failing ? "#dc2626" : "#059669" }}>{obtained}</td>
                                                 <td style={{ padding: "10px 14px", textAlign: "center", color: "#6b7280" }}>{subj.max_marks}</td>
                                                 <td style={{ padding: "10px 14px", textAlign: "center" }}>
                                                     <span style={{ padding: "2px 10px", borderRadius: "12px", fontSize: "12px", fontWeight: "700", backgroundColor: good ? "#ecfdf5" : "#fef2f2", color: good ? "#059669" : "#dc2626" }}>
