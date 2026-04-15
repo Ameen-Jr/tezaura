@@ -102,10 +102,11 @@ function ReportsDashboard({ onViewProfile }) {
         return reportData.defaulters.reduce((sum, student) => sum + student.total_due, 0);
     };
 
-    const daysInMonth = Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, '0'));
+    const actualDaysInMonth = new Date(parseInt(year), ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"].indexOf(month) + 1, 0).getDate();
+    const daysInMonth = Array.from({ length: actualDaysInMonth }, (_, i) => (i + 1).toString().padStart(2, '0'));
 
-    const monthIndex = ["January","February","March","April","May","June","July","August","September","October","November","December"].indexOf(month);
-    const dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+    const monthIndex = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"].indexOf(month);
+    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const getDayName = (dayNum) => {
         const d = new Date(parseInt(year), monthIndex, parseInt(dayNum));
         return dayNames[d.getDay()];
@@ -392,7 +393,7 @@ function ReportsDashboard({ onViewProfile }) {
                                 <thead>
                                     <tr style={{ backgroundColor: "#1f2937", color: "white" }}>
                                         <th style={{
-                                            padding: "8px", textAlign: "left", width: "22%",
+                                            padding: "8px", textAlign: "left", width: "15%",
                                             position: "sticky", left: 0, backgroundColor: "#1f2937",
                                             borderRight: "1px solid #374151", zIndex: 20
                                         }}>
@@ -414,16 +415,16 @@ function ReportsDashboard({ onViewProfile }) {
                                                 </div>
                                             </th>
                                         ))}
-                                        <th style={{ width: "3%", backgroundColor: "#065F46" }}>P</th>
-                                        <th style={{ width: "3%", backgroundColor: "#991B1B" }}>A</th>
-                                        <th style={{ width: "4%", backgroundColor: "#1E40AF" }}>%</th>
+                                        <th style={{ width: "2.5%", textAlign: "center", backgroundColor: "#065F46" }}>P</th>
+                                        <th style={{ width: "2.5%", textAlign: "center", backgroundColor: "#991B1B" }}>A</th>
+                                        <th style={{ width: "3.5%", textAlign: "center", backgroundColor: "#1E40AF" }}>%</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {/* BOYS SECTION */}
                                     {reportData.students.filter(s => s.gender === "Male").length > 0 && (
                                         <tr>
-                                            <td colSpan="35" style={{ padding: "6px 10px", backgroundColor: "#EFF6FF", color: "#1e40af", fontWeight: "bold", fontSize: "12px", borderBottom: "1px solid #BFDBFE", position: "sticky", left: 0 }}>
+                                            <td colSpan={3 + daysInMonth.length} style={{ padding: "6px 10px", backgroundColor: "#EFF6FF", color: "#1e40af", fontWeight: "bold", fontSize: "12px", borderBottom: "1px solid #BFDBFE", position: "sticky", left: 0 }}>
                                                 👦 Boys ({reportData.students.filter(s => s.gender === "Male").length})
                                             </td>
                                         </tr>
@@ -478,7 +479,7 @@ function ReportsDashboard({ onViewProfile }) {
                                     {/* GIRLS SECTION */}
                                     {reportData.students.filter(s => s.gender === "Female").length > 0 && (
                                         <tr>
-                                            <td colSpan="35" style={{ padding: "6px 10px", backgroundColor: "#FDF2F8", color: "#9d174d", fontWeight: "bold", fontSize: "12px", borderBottom: "1px solid #FBCFE8", position: "sticky", left: 0 }}>
+                                            <td colSpan={3 + daysInMonth.length} style={{ padding: "6px 10px", backgroundColor: "#FDF2F8", color: "#9d174d", fontWeight: "bold", fontSize: "12px", borderBottom: "1px solid #FBCFE8", position: "sticky", left: 0 }}>
                                                 👧 Girls ({reportData.students.filter(s => s.gender === "Female").length})
                                             </td>
                                         </tr>
