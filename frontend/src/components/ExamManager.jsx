@@ -696,43 +696,101 @@ Please find the detailed progress card below. For any queries, feel free to cont
             {view === "marksheet" && activeTermExam && (
                 <div>
                     <style>{`
+    /* Hide spin buttons for numbers */
     input[type=number]::-webkit-inner-spin-button, 
     input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
     
     @media print {
-    @page { size: A4 landscape; margin: 10mm 8mm; }
-    table { border-collapse: collapse !important; width: 100% !important; table-layout: fixed !important; }
-    th {
-        background-color: #000 !important;
-        color: #fff !important;
-        border: 1.5px solid #000 !important;
-        padding: 5px 3px !important;
-        font-size: 9pt !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-        word-break: break-word;
+        @page { 
+            size: A4 landscape; 
+            margin: 10mm; 
+        }
+
+        /* Force Strict Black & White & Remove shadows */
+        * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            text-shadow: none !important;
+            box-shadow: none !important;
+            color: #000 !important; /* Overrides inline colors like the red failing marks */
+        }
+
+        .no-print { display: none !important; }
+
+        /* --- BULLETPROOF TABLE BORDERS --- */
+        table { 
+            width: 100% !important;
+            border-collapse: collapse !important; /* Reverting to collapse is safer here */
+            table-layout: fixed !important;
+            page-break-inside: auto;
+        }
+
+        tr { 
+            page-break-inside: avoid !important; 
+            page-break-after: auto; 
+        }
+
+        /* Use 1px instead of pt. Chrome's print engine handles 1px better 
+           for anti-aliasing without dropping lines on scaled pages. */
+        th, td {
+            border: 1px solid #000 !important; 
+            padding: 4px 2px !important;
+            text-align: center !important;
+            font-size: 9pt !important;
+            height: 26px !important; /* Hard integer height prevents row fractional scaling */
+        }
+
+        th {
+            background-color: #000 !important;
+            color: #fff !important;
+            font-size: 8.5pt !important;
+            text-transform: uppercase;
+        }
+
+        td:nth-child(2) { 
+            text-align: left !important; 
+            font-weight: bold !important; 
+            padding-left: 5px !important;
+            width: 22% !important; 
+        }
+
+        /* --- PAGE BREAK FOR GIRLS --- */
+        .girls-header { 
+            page-break-before: always !important; 
+            break-before: page !important; 
+            margin-top: 0 !important; 
+        }
+
+        /* Highlight Headers for Boys/Girls */
+        h4 { 
+            margin: 15px 0 5px 0 !important; 
+            font-size: 11pt !important; 
+            border-bottom: 2px solid #000 !important;
+            display: block;
+            width: 100%;
+        }
+
+        input { display: none !important; }
+        
+        .print-only {
+            display: block !important;
+            font-size: 9pt !important;
+            font-weight: bold;
+        }
+
+        /* Zebra striping for readability in B&W */
+        tr:nth-child(even) td { background-color: #f2f2f2 !important; }
+
+        .print-header { 
+            display: block !important; 
+            text-align: center; 
+            margin-bottom: 10px; 
+            border-bottom: 2px solid #000 !important;
+            padding-bottom: 5px;
+        }
+        
+        .print-header h1 { font-size: 16pt; margin: 0; }
     }
-    td {
-        border: 1px solid #555 !important;
-        padding: 4px 3px !important;
-        text-align: center !important;
-        font-size: 9pt !important;
-        word-break: break-word;
-    }
-    td:nth-child(2) { text-align: left !important; font-weight: bold !important; }
-    input { display: none !important; }
-    .print-only {
-        display: block !important;
-        font-size: 9pt !important;
-        text-align: center !important;
-        font-weight: bold;
-    }
-    tr:nth-child(even) td { background-color: #f0f0f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    h4 { margin: 6px 0 4px 0 !important; font-size: 10pt !important; color: #000 !important; }
-    h4.girls-header { page-break-before: always !important; }
-    .no-print { display: none !important; }
-    .print-header { display: block !important; text-align: center; margin-bottom: 8px; font-size: 11pt; font-weight: bold; }
-}
 `}</style>
                     <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "10px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
