@@ -797,7 +797,11 @@ Please find the detailed progress card below. For any queries, feel free to cont
                                                                 data-row={absIndex}
                                                                 data-col={subjIndex}
                                                                 value={student.marks[subj.exam_id]}
-                                                                onChange={e => handleMarksheetChange(student.id, subj.exam_id, e.target.value)}
+                                                                onChange={e => {
+                                                                    const val = e.target.value;
+                                                                    if (val.length > 2) return;
+                                                                    handleMarksheetChange(student.id, subj.exam_id, val);
+                                                                }}
                                                                 onKeyDown={e => {
                                                                     const totalCols = activeTermExam.subjects.length;
                                                                     const totalRows = getSortedMarksheet().length;
