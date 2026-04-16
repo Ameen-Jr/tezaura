@@ -2,7 +2,7 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Tezaura",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "com.tezaura.app",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
@@ -13,10 +13,11 @@
     "windows": [
       {
         "title": "Tezaura",
-        "width": 800,
-        "height": 600,
+        "width": 1280,
+        "height": 800,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "center": true
       }
     ],
     "security": {
@@ -26,6 +27,9 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "externalBin": [
+      "binaries/tezaura-backend"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

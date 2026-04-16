@@ -940,12 +940,58 @@ function App() {
   const [view, setView] = useState("home");
   const [selectedStudent, setSelectedStudent] = useState(null);
 
-  // --- NEW LOGIC: INTRO & LOGIN ---
+  // --- INTRO, BACKEND READINESS & LOGIN ---
   const [showIntro, setShowIntro] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [backendReady, setBackendReady] = useState(false);
 
-  // If intro is running, show it. If not logged in, show login.
+  // Poll /health every 500ms until the Python backend responds (max 60s)
+  useEffect(() => {
+    let attempts = 0;
+    const maxAttempts = 120; // 60 seconds
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`${API_BASE}/health`);
+        if (res.ok) {
+          setBackendReady(true);
+          clearInterval(interval);
+        }
+      } catch {
+        attempts++;
+        if (attempts >= maxAttempts) clearInterval(interval);
+      }
+    }, 500);
+    return () => clearInterval(interval);
+  }, []);
+
+  // The 4s cinematic intro naturally covers most of the backend boot time.
+  // After intro: if backend still not ready, show a slim boot screen.
   if (showIntro) return <CinematicIntro onComplete={() => setShowIntro(false)} />;
+
+  if (!backendReady) return (
+    <div style={{
+      position: 'fixed', inset: 0,
+      background: 'radial-gradient(circle at 50% 20%, #12002b, #020207 70%)',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      color: 'white', fontFamily: 'Inter, sans-serif', gap: '20px'
+    }}>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+      `}</style>
+      <div style={{
+        width: '40px', height: '40px',
+        border: '3px solid rgba(0,194,255,0.2)',
+        borderTop: '3px solid #00c2ff',
+        borderRadius: '50%',
+        animation: 'spin 0.9s linear infinite'
+      }} />
+      <div style={{ fontSize: '14px', color: '#00c2ff', letterSpacing: '3px', textTransform: 'uppercase' }}>
+        Starting Backend...
+      </div>
+    </div>
+  );
+
   if (!isLoggedIn) return <LoginScreen onLogin={() => setIsLoggedIn(true)} />;
 
   const handleViewProfile = (student) => {

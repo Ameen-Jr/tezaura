@@ -7,17 +7,27 @@ from pydantic import BaseModel
 import sqlite3
 import shutil
 import os
+import sys
 from typing import List
 from datetime import datetime
 
 # --- DB CONNECTION HELPER ---
-# NEW
 from contextlib import contextmanager
+
+# --- FROZEN-APP PATH RESOLUTION ---
+# When bundled by PyInstaller, sys.frozen is True and sys.executable
+# points to the .exe — ensuring the DB always lives next to it.
+if getattr(sys, 'frozen', False):
+    BASE_DIR = os.path.dirname(sys.executable)
+else:
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+DB_PATH = os.path.join(BASE_DIR, "classflow.db")
 
 @contextmanager
 def get_db():
     conn = sqlite3.connect(
-        "classflow.db",
+        DB_PATH,
         check_same_thread=False,
         timeout=10
     )
@@ -49,6 +59,11 @@ if not os.path.exists("uploaded_photos"):
     os.makedirs("uploaded_photos")
 
 app.mount("/photos", StaticFiles(directory="uploaded_photos"), name="photos")
+
+# --- HEALTH CHECK (used by frontend to wait for backend readiness) ---
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
 
 # --- DATA MODELS ---
 class FeeSchema(BaseModel):
@@ -1071,7 +1086,7 @@ def promote_students(data: PromotionSchema):
     try:
         from datetime import date as _date
         _stamp = _date.today().strftime("%Y-%m-%d")
-        shutil.copy("classflow.db", f"pre_promotion_backup_{_stamp}.db")
+        shutil.copy(DB_PATH, os.path.join(BASE_DIR, f"pre_promotion_backup_{_stamp}.db"))
         with get_db() as connection:
             cursor = connection.cursor()
             
@@ -1827,9 +1842,9 @@ async def get_recent_activity():
 
 @app.get("/backup/download")
 async def download_backup():
-    original_db = "classflow.db"
+    original_db = DB_PATH
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    backup_filename = f"Tezaura_Backup_{timestamp}.db"
+    backup_filename = os.path.join(BASE_DIR, f"Tezaura_Backup_{timestamp}.db")
     
     shutil.copy(original_db, backup_filename)
     
@@ -1849,8 +1864,8 @@ async def download_backup():
 
 @app.post("/backup/restore")
 async def restore_backup(file: UploadFile = File(...)):
-    db_filename = "classflow.db"
-    backup_filename = "classflow.db.old"
+    db_filename = DB_PATH
+    backup_filename = str(DB_PATH) + ".old"
 
     # 1. SILENT AUTO-BACKUP: Rename current DB to .old
     if os.path.exists(db_filename):

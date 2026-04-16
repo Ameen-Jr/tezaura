@@ -1,17 +1,25 @@
 import os
+import sys
 import shutil
 import sqlite3
 from datetime import datetime, date
 
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 SERVICE_ACCOUNT_FILE = 'tezaura-drive-key.json'
-DB_FILE = 'classflow.db'
+
+# Frozen-aware DB path (same logic as main.py)
+if getattr(sys, 'frozen', False):
+    BASE_DIR = os.path.dirname(sys.executable)
+else:
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+DB_PATH = os.path.join(BASE_DIR, "classflow.db")
 BACKUP_RETENTION_DAYS = 90
 
 
 def get_setting(key):
     try:
-        conn = sqlite3.connect(DB_FILE)
+        conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute("SELECT value FROM system_settings WHERE key=?", (key,))
         row = cursor.fetchone()
@@ -23,7 +31,7 @@ def get_setting(key):
 
 def set_setting(key, value):
     try:
-        conn = sqlite3.connect(DB_FILE)
+        conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO system_settings (key, value) VALUES (?, ?)
@@ -94,7 +102,7 @@ def upload_backup_to_drive():
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
         backup_name = f"Tezaura_Backup_{timestamp}.db"
         temp_path = f"temp_{backup_name}"
-        shutil.copy(DB_FILE, temp_path)
+        shutil.copy(DB_PATH, temp_path)
 
         file_metadata = {'name': backup_name, 'parents': [folder_id]}
         media = MediaFileUpload(temp_path, mimetype='application/x-sqlite3', resumable=False)

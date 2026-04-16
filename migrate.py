@@ -6,13 +6,20 @@ Each migration is versioned and runs only once.
 """
 import sqlite3
 import os
+import sys
 
-DB_FILE = 'classflow.db'
+# Frozen-aware DB path
+if getattr(sys, 'frozen', False):
+    BASE_DIR = os.path.dirname(sys.executable)
+else:
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+DB_PATH = os.path.join(BASE_DIR, "classflow.db")
 CURRENT_APP_VERSION = "1.0.0"  # Bump this with every release
 
 
 def get_db():
-    conn = sqlite3.connect(DB_FILE)
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -50,7 +57,7 @@ def add_column_if_missing(cursor, table, column, definition):
 
 
 def run_migrations():
-    if not os.path.exists(DB_FILE):
+    if not os.path.exists(DB_PATH):
         print("❌ Database not found. Run the app first to create it.")
         return False
 
