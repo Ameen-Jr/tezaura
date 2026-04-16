@@ -12,7 +12,7 @@ from typing import List
 from datetime import datetime
 
 # --- DB CONNECTION HELPER ---
-from contextlib import contextmanager
+from contextlib import contextmanager, asynccontextmanager
 
 # --- FROZEN-APP PATH RESOLUTION ---
 # When bundled by PyInstaller, sys.frozen is True and sys.executable
@@ -37,15 +37,16 @@ def get_db():
     finally:
         conn.close()
 
-app = FastAPI()
-
-@app.on_event("startup")
-async def startup_auto_backup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     try:
         from drive_backup import check_and_run_weekly
         check_and_run_weekly()
     except Exception as e:
         print(f"Drive backup startup check skipped: {e}")
+    yield  # App runs here
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -2083,3 +2084,12 @@ def delete_exam(exam_id: int):
             return {"status": "success", "message": f"Exam '{exam[0]}' and all its marks deleted."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- ENTRY POINT FOR PYINSTALLER BUNDLE ---
+# Without this block, the bundled .exe just imports everything and exits.
+if __name__ == "__main__":
+    import multiprocessing
+    multiprocessing.freeze_support()  # Required for PyInstaller on Windows
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=8000, log_level="error")
