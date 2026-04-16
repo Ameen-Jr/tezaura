@@ -37,8 +37,128 @@ def get_db():
     finally:
         conn.close()
 
+def init_db():
+    """Create all tables on first run. Safe to call on every startup."""
+    with get_db() as conn:
+        conn.executescript("""
+            CREATE TABLE IF NOT EXISTS students (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                admission_number TEXT UNIQUE,
+                name TEXT,
+                class_standard TEXT,
+                division TEXT DEFAULT '',
+                gender TEXT DEFAULT 'Male',
+                dob TEXT,
+                address TEXT,
+                school_name TEXT,
+                father_name TEXT,
+                father_occupation TEXT,
+                father_phone TEXT,
+                mother_name TEXT,
+                mother_occupation TEXT,
+                mother_phone TEXT,
+                whatsapp_number TEXT,
+                bus_stop TEXT,
+                panchayat TEXT,
+                remarks TEXT,
+                photo_path TEXT,
+                sslc_number TEXT DEFAULT NULL,
+                admission_date TEXT,
+                is_active INTEGER DEFAULT 1,
+                activities TEXT DEFAULT NULL
+            );
+            CREATE TABLE IF NOT EXISTS fees (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                student_id INTEGER,
+                month_year TEXT,
+                amount REAL,
+                date_paid TEXT,
+                FOREIGN KEY(student_id) REFERENCES students(id)
+            );
+            CREATE TABLE IF NOT EXISTS attendance (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                student_id INTEGER,
+                date TEXT,
+                session TEXT DEFAULT 'Day',
+                status TEXT,
+                FOREIGN KEY(student_id) REFERENCES students(id)
+            );
+            CREATE TABLE IF NOT EXISTS exams (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT,
+                class_standard TEXT,
+                division TEXT DEFAULT '',
+                subject TEXT,
+                max_marks REAL,
+                date TEXT
+            );
+            CREATE TABLE IF NOT EXISTS marks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                exam_id INTEGER,
+                student_id INTEGER,
+                marks_obtained REAL,
+                FOREIGN KEY(exam_id) REFERENCES exams(id),
+                FOREIGN KEY(student_id) REFERENCES students(id)
+            );
+            CREATE TABLE IF NOT EXISTS system_settings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                key TEXT UNIQUE,
+                value TEXT
+            );
+            CREATE TABLE IF NOT EXISTS discontinued_students (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                original_student_id INTEGER,
+                admission_number TEXT,
+                name TEXT,
+                class_standard TEXT,
+                division TEXT,
+                date_left DATE,
+                reason TEXT
+            );
+            CREATE TABLE IF NOT EXISTS alumni (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                admission_number TEXT UNIQUE,
+                name TEXT,
+                last_class TEXT,
+                division TEXT,
+                school_name TEXT,
+                year_graduated TEXT,
+                phone TEXT,
+                address TEXT,
+                photo_path TEXT,
+                gender TEXT DEFAULT 'Male'
+            );
+            CREATE TABLE IF NOT EXISTS exam_subjects (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                exam_id INTEGER NOT NULL,
+                subject_name TEXT NOT NULL,
+                max_marks REAL NOT NULL,
+                sort_order INTEGER DEFAULT 0,
+                FOREIGN KEY (exam_id) REFERENCES exams(id)
+            );
+            CREATE TABLE IF NOT EXISTS sslc_results (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                admission_number TEXT UNIQUE,
+                lang_i TEXT, lang_ii TEXT, english TEXT, hindi TEXT, maths TEXT,
+                physics TEXT, chemistry TEXT, biology TEXT, social TEXT, it TEXT
+            );
+            CREATE TABLE IF NOT EXISTS library_records (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                student_id INTEGER,
+                book_name TEXT,
+                book_id TEXT,
+                issue_date DATE,
+                return_date DATE,
+                FOREIGN KEY(student_id) REFERENCES students(id)
+            );
+        """)
+        conn.execute("INSERT OR IGNORE INTO system_settings (key, value) VALUES ('academic_year', '2025-26')")
+        conn.execute("INSERT OR IGNORE INTO system_settings (key, value) VALUES ('setup_completed', '0')")
+        conn.commit()
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    init_db()  # Always create missing tables on startup
     try:
         from drive_backup import check_and_run_weekly
         check_and_run_weekly()
@@ -56,10 +176,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-if not os.path.exists("uploaded_photos"):
-    os.makedirs("uploaded_photos")
-
-app.mount("/photos", StaticFiles(directory="uploaded_photos"), name="photos")
+# Photos directory — always next to the exe in the bundled app
+PHOTOS_DIR = os.path.join(BASE_DIR, "uploaded_photos")
+os.makedirs(PHOTOS_DIR, exist_ok=True)
+app.mount("/photos", StaticFiles(directory=PHOTOS_DIR), name="photos")
 
 # --- HEALTH CHECK (used by frontend to wait for backend readiness) ---
 @app.get("/health")
@@ -333,7 +453,7 @@ def add_student(
             if file_extension not in ALLOWED_EXTENSIONS:
                 raise HTTPException(status_code=400, detail="Only JPG, PNG, WEBP images allowed.")
             filename = f"{admission_number}_{name.replace(' ', '_')}.{file_extension}"
-            file_location = f"uploaded_photos/{filename}"
+            file_location = os.path.join(PHOTOS_DIR, filename)
             with open(file_location, "wb+") as file_object:
                 shutil.copyfileobj(photo.file, file_object)
             photo_path = filename
@@ -404,7 +524,7 @@ def update_student_photo(admission_number: str, photo: UploadFile = File(...)):
             student_name = result[0]
             file_extension = photo.filename.split(".")[-1]
             new_filename = f"{admission_number}_{student_name.replace(' ', '_')}_v2.{file_extension}"
-            file_location = f"uploaded_photos/{new_filename}"
+            file_location = os.path.join(PHOTOS_DIR, new_filename)
             with open(file_location, "wb+") as file_object:
                 shutil.copyfileobj(photo.file, file_object)
             cursor.execute("UPDATE students SET photo_path = ? WHERE admission_number = ?", (new_filename, admission_number))
@@ -1523,6 +1643,31 @@ def set_academic_year(data: AcademicYearSchema):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/settings/setup-status")
+def get_setup_status():
+    try:
+        with get_db() as connection:
+            cursor = connection.cursor()
+            cursor.execute("SELECT value FROM system_settings WHERE key='setup_completed'")
+            result = cursor.fetchone()
+            return {"completed": result is not None and result[0] == '1'}
+    except Exception:
+        return {"completed": False}
+
+@app.post("/settings/setup-status")
+def mark_setup_complete():
+    try:
+        with get_db() as connection:
+            cursor = connection.cursor()
+            cursor.execute("""
+                INSERT INTO system_settings (key, value) VALUES ('setup_completed', '1')
+                ON CONFLICT(key) DO UPDATE SET value = '1'
+            """)
+            connection.commit()
+            return {"status": "done"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/settings/fees")
 def get_fee_settings():
     try:
@@ -2091,5 +2236,15 @@ def delete_exam(exam_id: int):
 if __name__ == "__main__":
     import multiprocessing
     multiprocessing.freeze_support()  # Required for PyInstaller on Windows
+
+    # --noconsole PyInstaller sets sys.stderr/stdout to None.
+    # Uvicorn's logging formatter calls .isatty() on them and crashes.
+    # Redirect to devnull so nothing blows up.
+    import sys, os
+    if sys.stderr is None:
+        sys.stderr = open(os.devnull, 'w')
+    if sys.stdout is None:
+        sys.stdout = open(os.devnull, 'w')
+
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000, log_level="error")
+    uvicorn.run(app, host="127.0.0.1", port=8000, log_config=None)

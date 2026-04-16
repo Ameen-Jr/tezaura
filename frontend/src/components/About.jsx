@@ -3,6 +3,13 @@ import SafeLottie from './SafeLottie';
 import spaceBoyAnim from './space boy developer.json';
 import favicon from './favicon.png';
 
+// Opens URLs in the system default browser when running inside Tauri
+const openExternal = (url) => {
+  import('@tauri-apps/api/core')
+    .then(({ invoke }) => invoke('open_url', { url }))
+    .catch(() => window.open(url, '_blank'));
+};
+
 const About = () => {
   const [activeCard, setActiveCard] = useState('product'); // 'product' or 'dev'
   const [showModal, setShowModal] = useState(false);
@@ -314,15 +321,15 @@ const About = () => {
 
           {/* --- SOCIAL BUTTONS --- */}
           <div className="social-row">
-            <a href="https://www.linkedin.com/in/ameen-jawhar" target="_blank" rel="noreferrer" className="icon-button linkedin">
+            <div onClick={() => openExternal('https://www.linkedin.com/in/ameen-jawhar')} className="icon-button linkedin" style={{ cursor: 'pointer' }}>
               <i className="fab fa-linkedin-in"></i>
               <span></span>
-            </a>
+            </div>
 
-            <a href="https://github.com/Ameen-Jr" target="_blank" rel="noreferrer" className="icon-button github">
+            <div onClick={() => openExternal('https://github.com/Ameen-Jr')} className="icon-button github" style={{ cursor: 'pointer' }}>
               <i className="fab fa-github"></i>
               <span></span>
-            </a>
+            </div>
 
             {/* GMAIL BUTTON -> OPENS MODAL (FIXED SHAPE) */}
             <div
@@ -366,7 +373,7 @@ const About = () => {
               </span>
             </div>
 
-            <div className="contact-row" onClick={() => window.open("https://www.linkedin.com/in/ameen-jawhar", "_blank")}>
+            <div className="contact-row" onClick={() => openExternal('https://www.linkedin.com/in/ameen-jawhar')}>
               <span style={{ fontSize: "20px" }}>💼</span>
               <div style={{ textAlign: "left" }}>
                 <div style={{ fontSize: "11px", color: "#94a3b8", fontWeight: "bold" }}>LINKEDIN</div>

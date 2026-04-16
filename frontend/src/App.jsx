@@ -593,10 +593,11 @@ function DashboardHome() {
   useEffect(() => {
     const loadStats = async () => {
       try {
-        const [statsRes, actRes, yearRes] = await Promise.all([
+        const [statsRes, actRes, yearRes, setupRes] = await Promise.all([
           fetch(`${API_BASE}/dashboard/stats`),
           fetch(`${API_BASE}/dashboard/activity`),
-          fetch(`${API_BASE}/settings/academic-year`)
+          fetch(`${API_BASE}/settings/academic-year`),
+          fetch(`${API_BASE}/settings/setup-status`),
         ]);
         const statsData = await statsRes.json();
         setStats(statsData);
@@ -606,8 +607,9 @@ function DashboardHome() {
         }
         if (yearRes.ok) {
           const yearData = await yearRes.json();
-          const hasBeenSet = localStorage.getItem('tezaura-year-confirmed');
-          if (!hasBeenSet) {
+          // Use DB-backed flag (not localStorage) so it works correctly after reinstall
+          const setupData = setupRes.ok ? await setupRes.json() : { completed: true };
+          if (!setupData.completed) {
             setPromptYear(yearData.academic_year || "2025-26");
             setYearPrompt(true);
           }
@@ -630,7 +632,7 @@ function DashboardHome() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ academic_year: promptYear })
       });
-      localStorage.setItem('tezaura-year-confirmed', '1');
+      // No longer using localStorage — setup state is tracked in the DB
       setYearPrompt(false);
       setYearError("");
       // Show fee setup next
@@ -666,6 +668,10 @@ function DashboardHome() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(promptCentre)
       });
+    } catch (e) { console.error(e); }
+    // Mark first-launch setup as complete in DB so prompts don't show again
+    try {
+      await fetch(`${API_BASE}/settings/setup-status`, { method: "POST" });
     } catch (e) { console.error(e); }
     setCentrePrompt(false);
   };
