@@ -128,11 +128,12 @@ function PromotionManager() {
                 {/* Astronaut (Forced to Right Edge) */}
                 <div style={{
                     position: 'absolute',
-                    right: '-30px',   // Pushes it slightly past the edge
-                    top: '-20px',     // Adjusts vertical height
+                    right: '-30px',
+                    top: '-20px',
                     width: "180px",
                     height: "180px",
-                    pointerEvents: 'none' // Ensures clicks go through if it overlaps anything
+                    pointerEvents: 'none',
+                    zIndex: 20
                 }}>
                     <SafeLottie animationData={astroAnim} />
                 </div>
