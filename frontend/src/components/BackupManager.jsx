@@ -5,11 +5,13 @@ import API_BASE from '../config';
 
 const BackupManager = () => {
   const [downloading, setDownloading] = useState(false);
+  const [downloadMsg, setDownloadMsg] = useState("");
   const [restoring, setRestoring] = useState(false);
-  const [driveStatus, setDriveStatus] = useState({ folder_configured: false, folder_id: "", last_backup: "Never", key_file_present: false });
+  const [driveStatus, setDriveStatus] = useState({ folder_configured: false, folder_id: "", last_backup: "Never", key_file_present: false, token_authorized: false });
   const [driveFolderId, setDriveFolderId] = useState("");
   const [driveUploading, setDriveUploading] = useState(false);
   const [driveMessage, setDriveMessage] = useState("");
+  const [authorizing, setAuthorizing] = useState(false);
 
   // Modal States
   const [showModal, setShowModal] = useState(false);
@@ -29,6 +31,28 @@ const BackupManager = () => {
   }, []);
 
   // --- DOWNLOAD LOGIC ---
+
+  const authorizeGoogle = async () => {
+    setAuthorizing(true);
+    setDriveMessage("Opening browser for Google authorization... Complete the sign-in then return here.");
+    try {
+      const res = await fetch(`${API_BASE}/backup/drive-authorize`, { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        setDriveMessage(`✅ ${data.message}`);
+        // Re-fetch status to update token_authorized
+        const statusRes = await fetch(`${API_BASE}/settings/drive-status`);
+        const statusData = await statusRes.json();
+        setDriveStatus(statusData);
+      } else {
+        setDriveMessage(`❌ ${data.detail}`);
+      }
+    } catch {
+      setDriveMessage("❌ Connection error.");
+    }
+    setAuthorizing(false);
+    setTimeout(() => setDriveMessage(""), 6000);
+  };
 
   const saveDriveFolder = async () => {
     if (!driveFolderId.trim()) return;
@@ -72,18 +96,25 @@ const BackupManager = () => {
 
   const handleDownload = async () => {
     setDownloading(true);
+    setDownloadMsg("");
     try {
       const response = await fetch(`${API_BASE}/backup/download`);
+      if (!response.ok) throw new Error(`Server error ${response.status}`);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `Tezaura_Backup_${new Date().toISOString().slice(0, 10)}.db`;
+      a.style.display = 'none';
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      // Delay revoke so WebView2 has time to start the download
+      setTimeout(() => window.URL.revokeObjectURL(url), 2000);
+      setDownloadMsg("Downloaded to your Downloads folder.");
+      setTimeout(() => setDownloadMsg(""), 5000);
     } catch (error) {
-      alert("Backup Failed! Check backend connection.");
+      setDownloadMsg("Backup Failed: " + error.message);
     }
     setDownloading(false);
   };
@@ -183,6 +214,16 @@ const BackupManager = () => {
         <button className="btn btn-download" onClick={handleDownload} disabled={downloading}>
           {downloading ? "Generating..." : "⬇ Download Backup File"}
         </button>
+        {downloadMsg && (
+          <div style={{
+            marginTop: "12px", padding: "10px 14px", borderRadius: "6px", fontSize: "13px", fontWeight: "bold",
+            backgroundColor: downloadMsg.includes("Downloaded") ? "#ECFDF5" : "#FEF2F2",
+            color: downloadMsg.includes("Downloaded") ? "#065F46" : "#B91C1C",
+            border: `1px solid ${downloadMsg.includes("Downloaded") ? "#A7F3D0" : "#FECACA"}`
+          }}>
+            {downloadMsg.includes("Downloaded") ? "✅ " : "❌ "}{downloadMsg}
+          </div>
+        )}
 
         {/* CRITICAL ADVICE (Unchanged) */}
         <div className="info-text">
@@ -223,19 +264,45 @@ const BackupManager = () => {
           Last backup: <strong>{driveStatus.last_backup}</strong>
         </p>
 
-        {/* Key file status indicator */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: "8px",
-          padding: "8px 12px", borderRadius: "6px", marginBottom: "16px",
-          backgroundColor: driveStatus.key_file_present ? "#ECFDF5" : "#FEF9C3",
-          border: `1px solid ${driveStatus.key_file_present ? "#A7F3D0" : "#FDE68A"}`
-        }}>
-          <span style={{ fontSize: "16px" }}>{driveStatus.key_file_present ? "✅" : "⚠️"}</span>
-          <span style={{ fontSize: "13px", color: driveStatus.key_file_present ? "#065F46" : "#92400E", fontWeight: "bold" }}>
-            {driveStatus.key_file_present
-              ? "tezaura-drive-key.json found"
-              : "tezaura-drive-key.json not found — place it next to main.py"}
-          </span>
+        {/* OAuth status indicators */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "16px" }}>
+          <div style={{
+            display: "flex", alignItems: "center", gap: "8px",
+            padding: "8px 12px", borderRadius: "6px",
+            backgroundColor: driveStatus.key_file_present ? "#ECFDF5" : "#FEF9C3",
+            border: `1px solid ${driveStatus.key_file_present ? "#A7F3D0" : "#FDE68A"}`
+          }}>
+            <span style={{ fontSize: "16px" }}>{driveStatus.key_file_present ? "✅" : "⚠️"}</span>
+            <span style={{ fontSize: "13px", color: driveStatus.key_file_present ? "#065F46" : "#92400E", fontWeight: "bold" }}>
+              {driveStatus.key_file_present ? "client_secret.json found" : "client_secret.json not found — place it next to the app"}
+            </span>
+          </div>
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "8px 12px", borderRadius: "6px",
+            backgroundColor: driveStatus.token_authorized ? "#EFF6FF" : "#F5F3FF",
+            border: `1px solid ${driveStatus.token_authorized ? "#BFDBFE" : "#DDD6FE"}`
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ fontSize: "16px" }}>{driveStatus.token_authorized ? "🔑" : "🔒"}</span>
+              <span style={{ fontSize: "13px", color: driveStatus.token_authorized ? "#1E40AF" : "#5B21B6", fontWeight: "bold" }}>
+                {driveStatus.token_authorized ? "Authorized (token.json active)" : "Not authorized — click to sign in with Google"}
+              </span>
+            </div>
+            {driveStatus.key_file_present && !driveStatus.token_authorized && (
+              <button
+                onClick={authorizeGoogle}
+                disabled={authorizing}
+                style={{
+                  padding: "6px 14px", backgroundColor: "#4F46E5", color: "white",
+                  border: "none", borderRadius: "6px", cursor: authorizing ? "not-allowed" : "pointer",
+                  fontWeight: "bold", fontSize: "13px", whiteSpace: "nowrap"
+                }}
+              >
+                {authorizing ? "Opening..." : "Authorize with Google"}
+              </button>
+            )}
+          </div>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -271,7 +338,7 @@ const BackupManager = () => {
             </p>
           </div>
 
-          {driveStatus.folder_configured && driveStatus.key_file_present && (
+          {driveStatus.folder_configured && driveStatus.token_authorized && (
             <button
               onClick={runDriveBackupNow}
               disabled={driveUploading}
@@ -300,19 +367,22 @@ const BackupManager = () => {
           {/* Setup instructions collapsible */}
           <details style={{ fontSize: "12px", color: "#6B7280" }}>
             <summary style={{ cursor: "pointer", fontWeight: "bold", color: "#374151", marginBottom: "6px" }}>
-              ⚙️ First-time setup instructions
+              ⚙️ First-time setup instructions (OAuth 2.0)
             </summary>
             <div style={{
               marginTop: "8px", padding: "12px", backgroundColor: "#F9FAFB",
               borderRadius: "6px", lineHeight: "1.8", border: "1px solid #E5E7EB"
             }}>
-              <strong>1.</strong> Run in terminal: <code style={{ backgroundColor: "#E5E7EB", padding: "1px 6px", borderRadius: "3px" }}>pip install google-api-python-client google-auth</code><br />
+              <strong>1.</strong> Install dependency: <code style={{ backgroundColor: "#E5E7EB", padding: "1px 6px", borderRadius: "3px" }}>pip install google-auth-oauthlib google-api-python-client</code><br />
               <strong>2.</strong> Go to <a href="https://console.cloud.google.com" target="_blank" rel="noreferrer" style={{ color: "#3B82F6" }}>console.cloud.google.com</a> → New Project<br />
               <strong>3.</strong> Enable <strong>Google Drive API</strong> for the project<br />
-              <strong>4.</strong> Go to IAM → Service Accounts → Create → Download JSON key<br />
-              <strong>5.</strong> Rename downloaded file to <code style={{ backgroundColor: "#E5E7EB", padding: "1px 6px", borderRadius: "3px" }}>tezaura-drive-key.json</code><br />
-              <strong>6.</strong> Place it in the same folder as <code style={{ backgroundColor: "#E5E7EB", padding: "1px 6px", borderRadius: "3px" }}>main.py</code><br />
-              <strong>7.</strong> In Google Drive, create a folder → Share it with the service account email → paste the folder ID above
+              <strong>4.</strong> Go to <strong>APIs &amp; Services → Credentials → Create Credentials → OAuth client ID</strong><br />
+              <strong>5.</strong> Application type: <strong>Desktop app</strong> → Create → Download JSON<br />
+              <strong>6.</strong> Rename the downloaded file to <code style={{ backgroundColor: "#E5E7EB", padding: "1px 6px", borderRadius: "3px" }}>client_secret.json</code><br />
+              <strong>7.</strong> Place <code style={{ backgroundColor: "#E5E7EB", padding: "1px 6px", borderRadius: "3px" }}>client_secret.json</code> next to <code style={{ backgroundColor: "#E5E7EB", padding: "1px 6px", borderRadius: "3px" }}>tezaura-backend.exe</code> in the install folder<br />
+              <strong>8.</strong> Click <strong>"Authorize with Google"</strong> above — sign in with your Gmail and allow access<br />
+              <strong>9.</strong> Create a Google Drive folder → paste its ID above → click Save<br />
+              <em style={{ color: "#9CA3AF" }}>token.json will be auto-created and refreshed — you only need to authorize once.</em>
             </div>
           </details>
         </div>

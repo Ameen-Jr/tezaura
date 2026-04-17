@@ -5,15 +5,16 @@ import sqlite3
 from datetime import datetime, date
 
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
-SERVICE_ACCOUNT_FILE = 'tezaura-drive-key.json'
 
-# Frozen-aware DB path (same logic as main.py)
+# Frozen-aware paths (same logic as main.py)
 if getattr(sys, 'frozen', False):
     BASE_DIR = os.path.dirname(sys.executable)
 else:
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 DB_PATH = os.path.join(BASE_DIR, "classflow.db")
+CLIENT_SECRET_FILE = os.path.join(BASE_DIR, 'client_secret.json')
+TOKEN_FILE = os.path.join(BASE_DIR, 'token.json')
 BACKUP_RETENTION_DAYS = 90
 
 
@@ -43,45 +44,77 @@ def set_setting(key, value):
         print(f"Settings write error: {e}")
 
 
+def get_credentials():
+    """Load saved OAuth token or run the browser auth flow."""
+    from google.oauth2.credentials import Credentials
+    from google.auth.transport.requests import Request
+
+    creds = None
+    if os.path.exists(TOKEN_FILE):
+        try:
+            creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
+        except Exception:
+            creds = None
+
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            # Auto-refresh silently
+            creds.refresh(Request())
+            with open(TOKEN_FILE, 'w') as f:
+                f.write(creds.to_json())
+        elif os.path.exists(CLIENT_SECRET_FILE):
+            # First-time auth: opens system browser
+            from google_auth_oauthlib.flow import InstalledAppFlow
+            flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRET_FILE, SCOPES)
+            creds = flow.run_local_server(port=0, open_browser=True)
+            with open(TOKEN_FILE, 'w') as f:
+                f.write(creds.to_json())
+        else:
+            return None
+
+    return creds
+
+
+def authorize():
+    """Trigger the OAuth2 flow. Returns result dict."""
+    try:
+        if not os.path.exists(CLIENT_SECRET_FILE):
+            return {"success": False, "message": "client_secret.json not found next to the app."}
+        creds = get_credentials()
+        if creds and creds.valid:
+            return {"success": True, "message": "Authorized successfully! token.json saved."}
+        return {"success": False, "message": "Authorization cancelled or failed."}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
 def get_drive_service():
-    from google.oauth2 import service_account
     from googleapiclient.discovery import build
-    creds = service_account.Credentials.from_service_account_file(
-        SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+    creds = get_credentials()
+    if not creds or not creds.valid:
+        raise Exception("Not authorized. Click 'Authorize with Google' first.")
     return build('drive', 'v3', credentials=creds, cache_discovery=False)
 
 
 def delete_old_backups(service, folder_id):
-    """Delete backup files in the Drive folder older than BACKUP_RETENTION_DAYS."""
+    """Delete Drive backups older than BACKUP_RETENTION_DAYS."""
     try:
         cutoff = datetime.utcnow()
         query = f"'{folder_id}' in parents and name contains 'Tezaura_Backup' and trashed=false"
         results = service.files().list(
-            q=query,
-            fields="files(id, name, createdTime)",
-            orderBy="createdTime asc"
+            q=query, fields="files(id, name, createdTime)", orderBy="createdTime asc"
         ).execute()
-
-        files = results.get('files', [])
-        deleted_count = 0
-
-        for f in files:
-            created_str = f.get('createdTime', '')
-            if not created_str:
-                continue
+        deleted = 0
+        for f in results.get('files', []):
             try:
-                created = datetime.strptime(created_str[:10], "%Y-%m-%d")
-                age_days = (cutoff - created).days
-                if age_days > BACKUP_RETENTION_DAYS:
+                created = datetime.strptime(f.get('createdTime', '')[:10], "%Y-%m-%d")
+                if (cutoff - created).days > BACKUP_RETENTION_DAYS:
                     service.files().delete(fileId=f['id']).execute()
-                    deleted_count += 1
-                    print(f"Deleted old backup: {f['name']} ({age_days} days old)")
-            except Exception as e:
-                print(f"Could not delete {f['name']}: {e}")
-
-        return deleted_count
-    except Exception as e:
-        print(f"Cleanup error: {e}")
+                    deleted += 1
+            except Exception:
+                pass
+        return deleted
+    except Exception:
         return 0
 
 
@@ -92,8 +125,8 @@ def upload_backup_to_drive():
     if not folder_id:
         return {"success": False, "message": "No Google Drive folder configured."}
 
-    if not os.path.exists(SERVICE_ACCOUNT_FILE):
-        return {"success": False, "message": f"Service account key file '{SERVICE_ACCOUNT_FILE}' not found next to main.py."}
+    if not os.path.exists(TOKEN_FILE) and not os.path.exists(CLIENT_SECRET_FILE):
+        return {"success": False, "message": "Not authorized. Place client_secret.json next to the app and click 'Authorize with Google'."}
 
     temp_path = None
     try:
@@ -101,24 +134,19 @@ def upload_backup_to_drive():
 
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
         backup_name = f"Tezaura_Backup_{timestamp}.db"
-        temp_path = f"temp_{backup_name}"
+        temp_path = os.path.join(BASE_DIR, f"temp_{backup_name}")
         shutil.copy(DB_PATH, temp_path)
 
         file_metadata = {'name': backup_name, 'parents': [folder_id]}
         media = MediaFileUpload(temp_path, mimetype='application/x-sqlite3', resumable=False)
-        uploaded = service.files().create(
-            body=file_metadata, media_body=media, fields='id,name'
-        ).execute()
+        service.files().create(body=file_metadata, media_body=media, fields='id,name').execute()
 
-        # Run cleanup after successful upload
         deleted = delete_old_backups(service, folder_id)
-
         set_setting('last_drive_backup', datetime.now().strftime("%Y-%m-%d %H:%M"))
 
         msg = f"Uploaded: {backup_name}"
         if deleted > 0:
-            msg += f" | Removed {deleted} backup(s) older than {BACKUP_RETENTION_DAYS} days"
-
+            msg += f" | Removed {deleted} old backup(s)"
         return {"success": True, "message": msg}
 
     except Exception as e:
@@ -128,30 +156,25 @@ def upload_backup_to_drive():
         if temp_path and os.path.exists(temp_path):
             try:
                 os.remove(temp_path)
-            except:
+            except Exception:
                 pass
 
 
 def check_and_run_weekly():
-    """Called on app startup. Runs backup only if 7+ days since last."""
+    """Called on app startup. Runs backup only if 7+ days since last and already authorized."""
     folder_id = get_setting('drive_folder_id')
     if not folder_id:
-        return  # Drive not configured, skip silently
-
-    if not os.path.exists(SERVICE_ACCOUNT_FILE):
-        return  # Key file missing, skip silently
+        return
+    if not os.path.exists(TOKEN_FILE):
+        return  # Not authorized yet — skip silently
 
     last_str = get_setting('last_drive_backup')
     if last_str:
         try:
             last_date = datetime.strptime(last_str[:10], "%Y-%m-%d").date()
-            days_since = (date.today() - last_date).days
-            if days_since < 7:
-                print(f"Drive backup: {days_since} days since last backup, skipping.")
+            if (date.today() - last_date).days < 7:
                 return
-        except:
-            pass  # Bad date format, proceed with backup
+        except Exception:
+            pass
 
-    print("Drive backup: running weekly backup...")
-    result = upload_backup_to_drive()
-    print(f"Drive backup result: {result['message']}")
+    upload_backup_to_drive()

@@ -2022,7 +2022,7 @@ async def download_backup():
     
     return FileResponse(
         path=backup_filename,
-        filename=backup_filename,
+        filename=os.path.basename(backup_filename),  # basename only for Content-Disposition
         media_type='application/x-sqlite3',
         background=BackgroundTask(cleanup)
     )
@@ -2138,21 +2138,25 @@ class CentreSettingsSchema(BaseModel):
 @app.get("/settings/drive-status")
 def get_drive_status():
     try:
+        import drive_backup as _db
         with get_db() as connection:
             cursor = connection.cursor()
             cursor.execute("SELECT value FROM system_settings WHERE key='drive_folder_id'")
             folder = cursor.fetchone()
             cursor.execute("SELECT value FROM system_settings WHERE key='last_drive_backup'")
             last = cursor.fetchone()
-            key_exists = os.path.exists('tezaura-drive-key.json')
+            secret_exists = os.path.exists(_db.CLIENT_SECRET_FILE)
+            token_exists  = os.path.exists(_db.TOKEN_FILE)
             return {
                 "folder_configured": bool(folder and folder[0]),
                 "folder_id": folder[0] if folder else "",
                 "last_backup": last[0] if last else "Never",
-                "key_file_present": key_exists
+                "key_file_present": secret_exists,   # client_secret.json
+                "token_authorized": token_exists,     # token.json (ready to upload)
             }
-    except Exception as e:
-        return {"folder_configured": False, "folder_id": "", "last_backup": "Never", "key_file_present": False}
+    except Exception:
+        return {"folder_configured": False, "folder_id": "", "last_backup": "Never",
+                "key_file_present": False, "token_authorized": False}
 
 @app.post("/settings/drive-folder")
 def save_drive_folder(data: DriveSettingsSchema):
@@ -2165,6 +2169,21 @@ def save_drive_folder(data: DriveSettingsSchema):
             """, (data.folder_id.strip(),))
             connection.commit()
             return {"status": "success", "message": "Folder ID saved."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/backup/drive-authorize")
+def drive_authorize():
+    """Trigger OAuth2 browser flow to generate token.json."""
+    try:
+        from drive_backup import authorize
+        result = authorize()
+        if result["success"]:
+            return {"status": "success", "message": result["message"]}
+        else:
+            raise HTTPException(status_code=400, detail=result["message"])
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
