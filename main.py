@@ -170,8 +170,8 @@ app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "tauri://localhost", "http://tauri.localhost"],
-    allow_credentials=True,
+    allow_origins=["*"],  # Desktop-only app — safe to allow all origins
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -730,7 +730,7 @@ def get_monthly_attendance_report(class_std: str, month: str, year: str, session
         except ValueError:
             month_str = f"{year}-01"
 
-        print(f"📊 Generating Report: Class {class_std} | {month_str} | Session: {session}")
+        print(f"[Report] Class {class_std} | {month_str} | Session: {session}")
 
         with get_db() as connection:
             cursor = connection.cursor()
@@ -760,8 +760,7 @@ def get_monthly_attendance_report(class_std: str, month: str, year: str, session
             # 5. Calculate Total Working Days (Unique dates found for this session)
             unique_dates = sorted(list(set(r[1] for r in records)))
             total_class_days = len(unique_dates)
-            
-            print(f"   -> Found {len(records)} records across {total_class_days} working days.")
+            print(f"[Report] Found {len(records)} records across {total_class_days} working days.")
 
             # 6. Map Data
             attendance_map = {}
@@ -822,7 +821,7 @@ def get_monthly_attendance_report(class_std: str, month: str, year: str, session
                 "class_percentage": class_pct
             }
     except Exception as e: 
-        print(f"❌ Error generating report: {e}") 
+        print(f"[Report] Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/attendance")
@@ -1975,6 +1974,26 @@ async def get_recent_activity():
                     "timestamp": clean_date,
                     "sort_date": clean_date
                 })
+
+            # 7. BIRTHDAYS TODAY (only active students, only today's date)
+            try:
+                today_md = datetime.now().strftime('%m-%d')
+                cursor.execute("""
+                    SELECT name, class_standard, division FROM students
+                    WHERE strftime('%m-%d', dob) = ? AND is_active = 1
+                    ORDER BY class_standard, name
+                """, (today_md,))
+                for b in cursor.fetchall():
+                    div = b['division'] or ''
+                    activities.append({
+                        "type": "birthday",
+                        "title": "Birthday Today!",
+                        "message": f"{b['name']} - Class {b['class_standard']} {div}".strip(),
+                        "timestamp": datetime.now().strftime('%Y-%m-%d'),
+                        "sort_date": "9999-99-99"  # Always sort to top
+                    })
+            except Exception:
+                pass
 
             # SORT: Newest Date First
             # Because Python sort is "stable", for the same date, Fees (added first) will stay above Admissions (added last).

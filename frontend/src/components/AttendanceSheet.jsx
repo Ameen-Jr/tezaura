@@ -36,8 +36,9 @@ function AttendanceSheet() {
       const data1 = await res1.json();
       let allStudents = [...(data1.boys || []), ...(data1.girls || [])].sort((a,b) => a.name.localeCompare(b.name));
 
-      // Get existing status
-      const monthName = new Date(date).toLocaleString('default', { month: 'long' });
+      // Hardcoded English months — toLocaleString('default') varies by system locale
+      const MONTHS_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      const monthName = MONTHS_EN[new Date(date).getMonth()];
       const yearStr = date.split("-")[0];
       const dayStr = parseInt(date.split("-")[2]); // Remove leading zeros
 

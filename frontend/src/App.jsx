@@ -685,6 +685,7 @@ function DashboardHome() {
       case 'library_return': return { icon: '📗', bg: '#F0FDF4' };// Light Green
       case 'absent': return { icon: '🚨', bg: '#FEF2F2' };        // Red (Alert)
       case 'exam': return { icon: '📝', bg: '#F5F3FF' };          // Purple
+      case 'birthday': return { icon: '🎂', bg: '#FEF9C3' };      // Golden
       default: return { icon: '🔔', bg: '#F3F4F6' };              // Grey
     }
   };
@@ -1130,7 +1131,7 @@ function App() {
           </div>
         </div>
 
-        <div style={{ padding: "20px 0", flex: 1, overflowY: "auto" }}>
+        <div className="sidebar-nav" style={{ padding: "20px 0", flex: 1, overflowY: "auto" }}>
           <div style={{ padding: "0 20px 10px", fontSize: "12px", color: "#6B7280", fontWeight: "bold", textTransform: "uppercase" }}>Main</div>
           <MenuItem id="home" label="Dashboard" icon="home" />
           <MenuItem id="search" label="Students" icon="search" />

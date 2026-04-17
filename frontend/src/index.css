@@ -60,6 +60,22 @@
   }
 }
 
+/* Themed scrollbar for sidebar nav — matches deep space dark theme */
+.sidebar-nav::-webkit-scrollbar {
+  width: 4px;
+}
+.sidebar-nav::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 4px;
+}
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(0, 194, 255, 0.25);
+  border-radius: 4px;
+}
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 194, 255, 0.5);
+}
+
 .sidebar-item {
   display: flex;
   align-items: center;
