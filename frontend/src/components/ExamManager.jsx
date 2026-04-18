@@ -3,6 +3,13 @@ import SafeLottie from './SafeLottie';
 import examAnim from './examAnim.json';
 import API_BASE from '../config';
 
+// Opens URLs in the system default browser when running inside Tauri
+const openExternal = (url) => {
+    import('@tauri-apps/api/core')
+        .then(({ invoke }) => invoke('open_url', { url }))
+        .catch(() => window.open(url, '_blank'));
+};
+
 function ExamManager() {
     const [view, setView] = useState("list");
     const [classStd, setClassStd] = useState("10");
@@ -381,7 +388,7 @@ Please find the detailed progress card below. For any queries, feel free to cont
 
 — ${centreInfo.centre_name}`;
 
-        window.open(`https://wa.me/${number}?text=${encodeURIComponent(msg)}`, '_blank');
+        openExternal(`https://wa.me/${number}?text=${encodeURIComponent(msg)}`);
     };
 
     const handleDeleteExam = async (exam) => {
@@ -1083,21 +1090,27 @@ Please find the detailed progress card below. For any queries, feel free to cont
                         <div style={{ padding: "16px 24px", borderTop: "1px solid #f1f5f9", display: "flex", gap: "12px", backgroundColor: "#f8fafc", borderRadius: "0 0 20px 20px" }}>
                             <button
                                 onClick={() => {
-                                    const w = window.open('', '_blank');
                                     const content = document.getElementById('progress-card-content').innerHTML;
-                                    w.document.write(`<!DOCTYPE html><html><head><title>Progress Card - ${progressCard.student.name}</title>
-                                    <style>
+                                    const styles = `
                                         * { box-sizing: border-box; margin: 0; padding: 0; }
                                         body { font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; color: #1e293b; }
                                         table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; }
                                         th { padding: 10px 14px; background-color: #1e293b !important; color: white !important; font-weight: 700; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                                         td { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; }
                                         @media print { body { padding: 15px; } }
-                                    </style>
-                                    </head><body>${content}
-                                    <script>window.onload = () => { window.print(); }<\/script>
-                                    </body></html>`);
-                                    w.document.close();
+                                    `;
+                                    const iframe = document.createElement('iframe');
+                                    iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0;';
+                                    document.body.appendChild(iframe);
+                                    const doc = iframe.contentWindow.document;
+                                    doc.open();
+                                    doc.write(`<!DOCTYPE html><html><head><title>Progress Card - ${progressCard.student.name}</title><style>${styles}</style></head><body>${content}</body></html>`);
+                                    doc.close();
+                                    iframe.onload = () => {
+                                        iframe.contentWindow.focus();
+                                        iframe.contentWindow.print();
+                                        setTimeout(() => document.body.removeChild(iframe), 1500);
+                                    };
                                 }}
                                 style={{ flex: 1, padding: "13px", background: "#1e293b", color: "white", border: "none", borderRadius: "10px", fontWeight: "700", cursor: "pointer", fontSize: "14px" }}>
                                 🖨️ Print / Save as PDF
