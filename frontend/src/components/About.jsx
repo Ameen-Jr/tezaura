@@ -38,6 +38,7 @@ const About = () => {
           height: 100vh;
           width: 100%;
           display: flex;
+          flex-direction: column;
           justify-content: center;
           align-items: center;
           position: relative;
@@ -287,9 +288,12 @@ const About = () => {
             </button>
           </div>
 
+          <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+            <button onClick={(e) => { e.stopPropagation(); setShowTnC(true); }} style={{ padding: '5px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#64748b', fontSize: '11px', cursor: 'pointer', fontWeight: '600' }}>Terms &amp; Conditions</button>
+            <button onClick={(e) => { e.stopPropagation(); setShowPrivacy(true); }} style={{ padding: '5px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#64748b', fontSize: '11px', cursor: 'pointer', fontWeight: '600' }}>Privacy Policy</button>
+          </div>
           <div className="copyright">© 2026 Tezaura. All Rights Reserved.</div>
         </div>
-
 
         {/* --- CARD 2: DEVELOPER PROFILE --- */}
         <div
@@ -351,15 +355,6 @@ const About = () => {
 
       </div>
 
-      {/* --- LEGAL SECTION --- */}
-      <div style={{ marginTop: '30px', padding: '20px 28px', background: 'rgba(255,255,255,0.04)', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-        <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: '13px' }}>Legal Documents</span>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={() => setShowTnC(true)} style={{ padding: '8px 18px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)', fontSize: '13px', cursor: 'pointer', fontWeight: '600' }}>Terms &amp; Conditions</button>
-          <button onClick={() => setShowPrivacy(true)} style={{ padding: '8px 18px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.7)', fontSize: '13px', cursor: 'pointer', fontWeight: '600' }}>Privacy Policy</button>
-        </div>
-      </div>
-
       {/* --- HIRE ME MODAL --- */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
@@ -410,7 +405,7 @@ const About = () => {
               <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '800' }}>Tezaura — Terms &amp; Conditions</h2>
               <button onClick={() => setShowTnC(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '8px', padding: '6px 14px', cursor: 'pointer', fontWeight: '700', color: '#6b7280' }}>✕ Close</button>
             </div>
-            {[{title:'1. Ownership',body:'Tezaura is an independently developed software application. All rights, including code, design, and functionality, are owned by the developer. This software is not part of any employment duties unless explicitly agreed in writing.'},{title:'2. License to Use',body:'The tuition centre is granted a non-exclusive, non-transferable license to use Tezaura for internal academic and administrative purposes only. The software may not be copied, modified, distributed, or resold without permission.'},{title:'3. Usage Scope',body:'Tezaura is intended for managing student records, attendance, marks, and communication. It must be used only for lawful and ethical purposes.'},{title:'4. Data Responsibility',body:'All data entered into Tezaura (student details, marks, phone numbers, etc.) is the responsibility of the tuition centre. The developer is not responsible for: incorrect data entry, data loss due to user actions, or failure to maintain backups.'},{title:'5. No Warranty',body:'Tezaura is provided "as-is" without any guarantees of uninterrupted or error-free operation. While efforts are made to ensure reliability, no warranty is provided.'},{title:'6. Limitation of Liability',body:'The developer shall not be held liable for: loss of data, incorrect reports or calculations, financial or operational losses, or downtime or technical issues.'},{title:'7. Support & Maintenance',body:"Basic support may be provided at the developer's discretion. Major updates, feature additions, or customizations may require separate agreement."},{title:'8. Termination',body:'The developer reserves the right to suspend or terminate access if the software is misused or if agreed terms are violated. The tuition centre may stop using the software at any time.'},{title:'9. Acceptance',body:'By using Tezaura, the user agrees to these Terms & Conditions.'}].map(s => (
+            {[{ title: '1. Ownership', body: 'Tezaura is an independently developed software application. All rights, including code, design, and functionality, are owned by the developer. This software is not part of any employment duties unless explicitly agreed in writing.' }, { title: '2. License to Use', body: 'The tuition centre is granted a non-exclusive, non-transferable license to use Tezaura for internal academic and administrative purposes only. The software may not be copied, modified, distributed, or resold without permission.' }, { title: '3. Usage Scope', body: 'Tezaura is intended for managing student records, attendance, marks, and communication. It must be used only for lawful and ethical purposes.' }, { title: '4. Data Responsibility', body: 'All data entered into Tezaura (student details, marks, phone numbers, etc.) is the responsibility of the tuition centre. The developer is not responsible for: incorrect data entry, data loss due to user actions, or failure to maintain backups.' }, { title: '5. No Warranty', body: 'Tezaura is provided "as-is" without any guarantees of uninterrupted or error-free operation. While efforts are made to ensure reliability, no warranty is provided.' }, { title: '6. Limitation of Liability', body: 'The developer shall not be held liable for: loss of data, incorrect reports or calculations, financial or operational losses, or downtime or technical issues.' }, { title: '7. Support & Maintenance', body: "Basic support may be provided at the developer's discretion. Major updates, feature additions, or customizations may require separate agreement." }, { title: '8. Termination', body: 'The developer reserves the right to suspend or terminate access if the software is misused or if agreed terms are violated. The tuition centre may stop using the software at any time.' }, { title: '9. Acceptance', body: 'By using Tezaura, the user agrees to these Terms & Conditions.' }].map(s => (
               <div key={s.title} style={{ marginBottom: '18px' }}>
                 <div style={{ fontWeight: '700', fontSize: '14px', color: '#1e293b', marginBottom: '5px' }}>{s.title}</div>
                 <div style={{ fontSize: '13px', color: '#475569', lineHeight: '1.7' }}>{s.body}</div>
@@ -428,7 +423,7 @@ const About = () => {
               <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '800' }}>Tezaura — Privacy Policy</h2>
               <button onClick={() => setShowPrivacy(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '8px', padding: '6px 14px', cursor: 'pointer', fontWeight: '700', color: '#6b7280' }}>✕ Close</button>
             </div>
-            {[{title:'1. Data Collected',body:'Tezaura may store the following information: student names and academic details, attendance and marks, and contact information (phone numbers).'},{title:'2. Purpose of Data',body:'This data is used solely for: managing student records, generating reports and progress cards, and communication with students/parents.'},{title:'3. Data Ownership',body:'All data belongs to the tuition centre using Tezaura. The developer does not claim ownership of any user data.'},{title:'4. Data Sharing',body:'Tezaura does not share, sell, or distribute data to third parties.'},{title:'5. Data Security',body:'Reasonable measures are taken to protect data; however, the tuition centre is responsible for maintaining backups and ensuring secure usage.'},{title:'6. Third-Party Services',body:'If features like messaging (e.g., WhatsApp) are used, they are subject to the policies of those services. The developer is not responsible for restrictions or bans imposed by such platforms.'},{title:'7. Changes to Policy',body:'This Privacy Policy may be updated when necessary. Continued use of the app implies acceptance of any changes.'}].map(s => (
+            {[{ title: '1. Data Collected', body: 'Tezaura may store the following information: student names and academic details, attendance and marks, and contact information (phone numbers).' }, { title: '2. Purpose of Data', body: 'This data is used solely for: managing student records, generating reports and progress cards, and communication with students/parents.' }, { title: '3. Data Ownership', body: 'All data belongs to the tuition centre using Tezaura. The developer does not claim ownership of any user data.' }, { title: '4. Data Sharing', body: 'Tezaura does not share, sell, or distribute data to third parties.' }, { title: '5. Data Security', body: 'Reasonable measures are taken to protect data; however, the tuition centre is responsible for maintaining backups and ensuring secure usage.' }, { title: '6. Third-Party Services', body: 'If features like messaging (e.g., WhatsApp) are used, they are subject to the policies of those services. The developer is not responsible for restrictions or bans imposed by such platforms.' }, { title: '7. Changes to Policy', body: 'This Privacy Policy may be updated when necessary. Continued use of the app implies acceptance of any changes.' }].map(s => (
               <div key={s.title} style={{ marginBottom: '18px' }}>
                 <div style={{ fontWeight: '700', fontSize: '14px', color: '#1e293b', marginBottom: '5px' }}>{s.title}</div>
                 <div style={{ fontSize: '13px', color: '#475569', lineHeight: '1.7' }}>{s.body}</div>
