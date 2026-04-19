@@ -1116,7 +1116,9 @@ Please find the detailed progress card below. For any queries, feel free to cont
                                     document.body.appendChild(iframe);
                                     const doc = iframe.contentWindow.document;
                                     doc.open();
-                                    doc.write(`<!DOCTYPE html><html><head><title>Progress Card - ${progressCard.student.name}</title><style>${styles}</style></head><body>${content}</body></html>`);
+                                    const examLabel = progressCard.exam?.name || "Exam";
+                                    const classLabel = `Class ${classStd}${division ? ` ${division}` : ""}`;
+                                    doc.write(`<!DOCTYPE html><html><head><title>${progressCard.student.name} ${classLabel} ${examLabel} Progress Report</title><style>${styles}</style></head><body>${content}</body></html>`);
                                     doc.close();
                                     iframe.onload = () => {
                                         iframe.contentWindow.focus();
