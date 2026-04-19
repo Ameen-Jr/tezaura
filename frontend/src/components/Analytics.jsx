@@ -164,7 +164,12 @@ function Analytics() {
           Refresh
         </button>
         <button
-          onClick={() => window.print()}
+          onClick={() => {
+            const prev = document.title;
+            document.title = `Class ${classStd}${division ? ` ${division}` : ""} Analytics Report`;
+            window.print();
+            document.title = prev;
+          }}
           className="no-print"
           style={{
             padding: "8px 20px",

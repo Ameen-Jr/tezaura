@@ -817,7 +817,14 @@ Please find the detailed progress card below. For any queries, feel free to cont
                                 {splitGender ? "👫 Split: ON" : "👫 Split: OFF"}
                             </button>
                             <button onClick={submitMarksheet} style={{ padding: "8px 20px", backgroundColor: "#27ae60", color: "white", border: "none", cursor: "pointer", borderRadius: "5px" }}>💾 Save</button>
-                            <button onClick={() => window.print()} style={{ padding: "8px 15px", backgroundColor: "#34495e", color: "white", border: "none", cursor: "pointer", borderRadius: "5px" }}>🖨️ Print</button>
+                            <button onClick={() => {
+                                const examName = activeTermExam?.name || "Exam";
+                                const cls = `Class ${classStd}${division ? ` ${division}` : ""}`;
+                                const prev = document.title;
+                                document.title = `${cls} Marksheet ${examName}`;
+                                window.print();
+                                document.title = prev;
+                            }} style={{ padding: "8px 15px", backgroundColor: "#34495e", color: "white", border: "none", cursor: "pointer", borderRadius: "5px" }}>🖨️ Print</button>
                         </div>
                     </div>
 
@@ -944,7 +951,12 @@ Please find the detailed progress card below. For any queries, feel free to cont
                 <div>
                     <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
                         <button onClick={() => setView("list")} style={{ padding: "8px 15px", cursor: "pointer" }}>← Back</button>
-                        <button onClick={() => window.print()} style={{ padding: "8px 20px", backgroundColor: "#34495e", color: "white", border: "none", cursor: "pointer" }}>🖨️ Print Rank List</button>
+                        <button onClick={() => {
+                            const prev = document.title;
+                            document.title = `Class ${classStd}${division ? ` ${division}` : ""} Rank List`;
+                            window.print();
+                            document.title = prev;
+                        }} style={{ padding: "8px 20px", backgroundColor: "#34495e", color: "white", border: "none", cursor: "pointer" }}>🖨️ Print Rank List</button>
                     </div>
                     <div className="card-glass" style={{ padding: "20px" }}>
                         <table style={{ width: "100%", borderCollapse: "collapse" }}>
