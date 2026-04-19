@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import SafeLottie from './SafeLottie';
 import examAnim from './examAnim.json';
 import API_BASE from '../config';
+import { printWithTitle } from '../utils/printUtils';
 
 // Opens URLs in the system default browser when running inside Tauri
 const openExternal = (url) => {
@@ -674,7 +675,9 @@ Please find the detailed progress card below. For any queries, feel free to cont
                 <div>
                     <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
                         <button onClick={() => setView("list")} style={{ padding: "8px 15px", cursor: "pointer" }}>← Back</button>
-                        <button onClick={() => window.print()} style={{ padding: "8px 20px", backgroundColor: "#34495e", color: "white", border: "none", cursor: "pointer" }}>🖨️ Print Result</button>
+                        <button onClick={() => {
+                            printWithTitle(`Class ${classStd}${division ? ` ${division}` : ''} ${selectedExam.name} Result`);
+                        }} style={{ padding: "8px 20px", backgroundColor: "#34495e", color: "white", border: "none", cursor: "pointer" }}>🖨️ Print Result</button>
                     </div>
                     <div className="card-glass" style={{ padding: "20px" }}>
                         <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -818,12 +821,9 @@ Please find the detailed progress card below. For any queries, feel free to cont
                             </button>
                             <button onClick={submitMarksheet} style={{ padding: "8px 20px", backgroundColor: "#27ae60", color: "white", border: "none", cursor: "pointer", borderRadius: "5px" }}>💾 Save</button>
                             <button onClick={() => {
-                                const examName = activeTermExam?.name || "Exam";
-                                const cls = `Class ${classStd}${division ? ` ${division}` : ""}`;
-                                const prev = document.title;
-                                document.title = `${cls} Marksheet ${examName}`;
-                                window.print();
-                                document.title = prev;
+                                const examName = activeTermExam?.name || 'Exam';
+                                const cls = `Class ${classStd}${division ? ` ${division}` : ''}`;
+                                printWithTitle(`${cls} Marksheet ${examName}`);
                             }} style={{ padding: "8px 15px", backgroundColor: "#34495e", color: "white", border: "none", cursor: "pointer", borderRadius: "5px" }}>🖨️ Print</button>
                         </div>
                     </div>
@@ -952,10 +952,7 @@ Please find the detailed progress card below. For any queries, feel free to cont
                     <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
                         <button onClick={() => setView("list")} style={{ padding: "8px 15px", cursor: "pointer" }}>← Back</button>
                         <button onClick={() => {
-                            const prev = document.title;
-                            document.title = `Class ${classStd}${division ? ` ${division}` : ""} Rank List`;
-                            window.print();
-                            document.title = prev;
+                            printWithTitle(`Class ${classStd}${division ? ` ${division}` : ''} Rank List`);
                         }} style={{ padding: "8px 20px", backgroundColor: "#34495e", color: "white", border: "none", cursor: "pointer" }}>🖨️ Print Rank List</button>
                     </div>
                     <div className="card-glass" style={{ padding: "20px" }}>
@@ -1118,11 +1115,12 @@ Please find the detailed progress card below. For any queries, feel free to cont
                                     doc.open();
                                     const examLabel = progressCard.exam?.name || "Exam";
                                     const classLabel = `Class ${classStd}${division ? ` ${division}` : ""}`;
-                                    doc.write(`<!DOCTYPE html><html><head><title>${progressCard.student.name} ${classLabel} ${examLabel} Progress Report</title><style>${styles}</style></head><body>${content}</body></html>`);
+                                    const pdfTitle = `${progressCard.student.name} ${classLabel} ${examLabel} Progress Report`;
+                                    doc.write(`<!DOCTYPE html><html><head><title>${pdfTitle}</title><style>${styles}</style></head><body>${content}</body></html>`);
                                     doc.close();
                                     iframe.onload = () => {
                                         iframe.contentWindow.focus();
-                                        iframe.contentWindow.print();
+                                        printWithTitle(pdfTitle, () => iframe.contentWindow.print());
                                         setTimeout(() => document.body.removeChild(iframe), 1500);
                                     };
                                 }}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import API_BASE from '../config';
+import { printWithTitle } from '../utils/printUtils';
 
 function AttendanceReport() {
     const [classStd, setClassStd] = useState("10");
@@ -73,12 +74,7 @@ function AttendanceReport() {
                     <option value="Night">🌙 Night Report</option>
                 </select>
 
-                <button onClick={() => {
-                    const prev = document.title;
-                    document.title = `Class ${classStd} ${session} Attendance ${month} ${year}`;
-                    window.print();
-                    document.title = prev;
-                }} style={{ padding: "8px 15px", backgroundColor: "#374151", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}>🖨️ Print</button>
+                <button onClick={() => printWithTitle(`Class ${classStd} ${session} Attendance ${month} ${year}`)} style={{ padding: "8px 15px", backgroundColor: "#374151", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}>🖨️ Print</button>
             </div>
 
             {/* ERROR MESSAGE (Prevents White Screen) */}

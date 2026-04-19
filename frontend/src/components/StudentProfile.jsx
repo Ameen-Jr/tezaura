@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import API_BASE from '../config';
+import { printWithTitle } from '../utils/printUtils';
 
 function StudentProfile({ student, onBack }) {
     const [feeHistory, setFeeHistory] = useState([]);
@@ -216,12 +217,7 @@ function StudentProfile({ student, onBack }) {
             <div className="no-print" style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
                 <button onClick={onBack} style={{ padding: "8px 15px", cursor: "pointer" }}>← Back to Search</button>
                 <div style={{ display: "flex", gap: "10px" }}>
-                    <button onClick={() => {
-                        const prev = document.title;
-                        document.title = `${editData.name} Profile`;
-                        window.print();
-                        document.title = prev;
-                    }} style={{ padding: "8px 20px", backgroundColor: "#34495e", color: "white", border: "none", cursor: "pointer", borderRadius: "5px" }}>🖨️ Print Profile</button>
+                    <button onClick={() => printWithTitle(`${editData.name} Profile`)} style={{ padding: "8px 20px", backgroundColor: "#34495e", color: "white", border: "none", cursor: "pointer", borderRadius: "5px" }}>🖨️ Print Profile</button>
                     {isEditing ? (
                         <>
                             <button onClick={handleSave} style={{ padding: "8px 20px", backgroundColor: "#27ae60", color: "white", border: "none", cursor: "pointer", borderRadius: "5px" }}>💾 Save</button>

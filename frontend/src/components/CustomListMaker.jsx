@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import API_BASE from '../config';
+import { printWithTitle } from '../utils/printUtils';
 
 function CustomListMaker() {
     // State for Filters
@@ -117,13 +118,9 @@ function CustomListMaker() {
                             </div>
                         </div>
                         <div style={{ marginLeft: "auto" }}>
-                            <button onClick={() => {
-                                const prev = document.title;
-                                const title = listTitle || `Class ${classStd}${division ? ` ${division}` : ""} List`;
-                                document.title = title;
-                                window.print();
-                                document.title = prev;
-                            }} style={{ padding: "12px 28px", background: "linear-gradient(135deg,#00c2ff,#0080ff)", color: "white", border: "none", borderRadius: "12px", cursor: "pointer", fontWeight: "800", fontSize: "14px", boxShadow: "0 4px 15px rgba(0,194,255,0.4)" }}>
+                            <button onClick={() =>
+                                printWithTitle(listTitle || `Class ${classStd}${division ? ` ${division}` : ''} List`)
+                            } style={{ padding: "12px 28px", background: "linear-gradient(135deg,#00c2ff,#0080ff)", color: "white", border: "none", borderRadius: "12px", cursor: "pointer", fontWeight: "800", fontSize: "14px", boxShadow: "0 4px 15px rgba(0,194,255,0.4)" }}>
                                 🖨️ Print List
                             </button>
                         </div>

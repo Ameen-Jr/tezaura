@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import API_BASE from '../config';
+import { printWithTitle } from '../utils/printUtils';
 
 function ReportsDashboard({ onViewProfile }) {
     const [reportType, setReportType] = useState("index");
@@ -208,7 +209,15 @@ function ReportsDashboard({ onViewProfile }) {
                 </button>
 
                 {reportData && (
-                    <button onClick={() => window.print()} style={{ padding: "8px 15px", backgroundColor: "#34495e", color: "white", border: "none", cursor: "pointer", marginLeft: "auto", borderRadius: "4px" }}>
+                    <button onClick={() => {
+                        let title = `Class ${classStd}${division ? ` ${division}` : ''}`;
+                        if (reportType === 'attendance') title += ` ${session} Attendance ${month} ${year}`;
+                        else if (reportType === 'pending') title += ` Pending Fees ${month}`;
+                        else if (reportType === 'index') title += ` Student Index`;
+                        else if (reportType === 'alumni') title = `Alumni Batch ${selectedGradYear}`;
+                        else if (reportType === 'discontinued') title += ` Discontinued Students`;
+                        printWithTitle(title);
+                    }} style={{ padding: "8px 15px", backgroundColor: "#34495e", color: "white", border: "none", cursor: "pointer", marginLeft: "auto", borderRadius: "4px" }}>
                         🖨️ Print
                     </button>
                 )}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import API_BASE from '../config';
+import { printWithTitle } from '../utils/printUtils';
 
 function ExamHistorySection({ examHistory, marksThreshold }) {
   const [expanded, setExpanded] = useState({});
@@ -165,10 +166,7 @@ function Analytics() {
         </button>
         <button
           onClick={() => {
-            const prev = document.title;
-            document.title = `Class ${classStd}${division ? ` ${division}` : ""} Analytics Report`;
-            window.print();
-            document.title = prev;
+            printWithTitle(`Class ${classStd}${division ? ` ${division}` : ''} Analytics`);
           }}
           className="no-print"
           style={{
