@@ -10,38 +10,42 @@ function FeeCollection() {
   const [searchResults, setSearchResults] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [feeHistory, setFeeHistory] = useState([]);
+  const [exemptions, setExemptions] = useState([]);
   const [paymentModal, setPaymentModal] = useState(null);
+  const [exemptModal, setExemptModal] = useState(null);
   const [amount, setAmount] = useState("");
   const [message, setMessage] = useState("");
   const [feeSettings, setFeeSettings] = useState({
     fee_class_8: 550, fee_class_9: 550, fee_class_10: 600,
     fee_class_8_old: 550, fee_class_9_old: 550, fee_class_10_old: 600,
     fee_class_8_from: "April", fee_class_9_from: "April", fee_class_10_from: "April"
-});
+  });
 
-useEffect(() => {
+  useEffect(() => {
     fetch(`${API_BASE}/settings/fees`)
-        .then(res => res.json())
-        .then(data => setFeeSettings(data))
-        .catch(err => console.error(err));
-}, []);
+      .then(res => res.json())
+      .then(data => setFeeSettings(data))
+      .catch(err => console.error(err));
+  }, []);
 
   const academicItems = [
-    "Admission Fee", 
-    "April", "May", "June", "July", "August", "September", 
+    "Admission Fee",
+    "April", "May", "June", "July", "August", "September",
     "October", "November", "December", "January", "February", "March"
   ];
-  
+
   const getAcademicYear = (month) => {
     const laterMonths = ["January", "February", "March"];
     const now = new Date();
     const calYear = now.getFullYear();
-    const calMonth = now.getMonth(); // 0=Jan
+    const calMonth = now.getMonth();
     const academicStartYear = calMonth < 3 ? calYear - 1 : calYear;
     return laterMonths.includes(month) ? academicStartYear + 1 : academicStartYear;
-}; 
+  };
 
-  // --- SEARCH LOGIC ---
+  const ACADEMIC_ORDER = ["April","May","June","July","August","September","October","November","December","January","February","March"];
+
+  // --- SEARCH ---
   const handleSearch = async (e) => {
     const val = e.target.value;
     setQuery(val);
@@ -64,15 +68,16 @@ useEffect(() => {
 
   const fetchFeeStatus = async (admNo) => {
     try {
-      const res = await fetch(`${API_BASE}/fees/${admNo}`);
-      const data = await res.json();
-      setFeeHistory(data);
+      const [feeRes, exemptRes] = await Promise.all([
+        fetch(`${API_BASE}/fees/${admNo}`),
+        fetch(`${API_BASE}/fees/exemptions/${admNo}`)
+      ]);
+      if (feeRes.ok) setFeeHistory(await feeRes.json());
+      if (exemptRes.ok) setExemptions(await exemptRes.json());
     } catch (err) { console.error(err); }
   };
 
-  const ACADEMIC_ORDER = ["April","May","June","July","August","September","October","November","December","January","February","March"];
-
-const getTargetAmount = (item) => {
+  const getTargetAmount = (item) => {
     if (item === "Admission Fee") return null;
     const cls = selectedStudent.class_standard;
     const newRate = cls === "10" ? feeSettings.fee_class_10 : cls === "9" ? feeSettings.fee_class_9 : feeSettings.fee_class_8;
@@ -82,273 +87,263 @@ const getTargetAmount = (item) => {
     const fromIdx = ACADEMIC_ORDER.indexOf(fromMonth);
     const itemIdx = ACADEMIC_ORDER.indexOf(item);
     return itemIdx >= fromIdx ? newRate : oldRate;
-};
+  };
 
   const getPaidAmount = (item) => {
-    const relevantFees = feeHistory.filter(record => record.month_year.includes(item));
-    return relevantFees.reduce((sum, record) => sum + record.amount, 0);
+    return feeHistory
+      .filter(r => r.month_year.includes(item))
+      .reduce((sum, r) => sum + r.amount, 0);
   };
 
-  // --- HANDLERS ---
-  const handlePayClick = (item) => {
+  const getFullItemString = (item) =>
+    item === "Admission Fee"
+      ? `Admission Fee ${new Date().getFullYear()}`
+      : `${item} ${getAcademicYear(item)}`;
+
+  const isExempt = (item) => {
+    if (item === "Admission Fee") return false;
+    const full = getFullItemString(item);
+    return exemptions.some(e => e.month_year === full);
+  };
+
+  // --- CLICK HANDLER ---
+  const handleCellClick = (item) => {
     const target = getTargetAmount(item);
     const paid = getPaidAmount(item);
-    
-    if (target !== null && paid >= target) return;
+    const full = getFullItemString(item);
 
-    const fullItemString = item === "Admission Fee" 
-    ? `Admission Fee ${new Date().getFullYear()}` 
-    : `${item} ${getAcademicYear(item)}`;
-    
-    let suggestedAmount = "";
-    if (item !== "Admission Fee") {
-        suggestedAmount = (target - paid).toString();
-    }
+    if (isExempt(item)) { setExemptModal(full); return; }
+    if (target !== null && paid >= target) return; // fully paid
 
-    setPaymentModal(fullItemString);
-    setAmount(suggestedAmount);
+    setPaymentModal(full);
+    setAmount(item !== "Admission Fee" ? String(target - paid) : "");
   };
 
+  // --- PAYMENT ---
   const confirmPayment = async (e) => {
     e.preventDefault();
     if (!amount) return;
-
-    const payload = {
-      admission_number: selectedStudent.admission_number,
-      month_year: paymentModal,
-      amount: parseFloat(amount),
-      date_paid: new Date().toISOString().split('T')[0]
-    };
-
     try {
       const res = await fetch(`${API_BASE}/fees`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          admission_number: selectedStudent.admission_number,
+          month_year: paymentModal,
+          amount: parseFloat(amount),
+          date_paid: new Date().toISOString().split('T')[0]
+        }),
       });
-
       if (res.ok) {
         setMessage(`✅ Paid ₹${amount} for ${paymentModal}!`);
         fetchFeeStatus(selectedStudent.admission_number);
         setPaymentModal(null);
         setTimeout(() => setMessage(""), 3000);
       } else { setMessage("❌ Error saving fee"); }
-    } catch (err) { setMessage("❌ Connection error"); }
+    } catch { setMessage("❌ Connection error"); }
+  };
+
+  // --- EXEMPT ---
+  const markExempt = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/fees/exemptions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ admission_number: selectedStudent.admission_number, month_year: paymentModal, reason: "" })
+      });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); setMessage(`❌ ${e.detail || 'Failed to mark exempt'}`); return; }
+      setPaymentModal(null);
+      setMessage(`✅ ${paymentModal} marked as exempt.`);
+      await fetchFeeStatus(selectedStudent.admission_number);
+      setTimeout(() => setMessage(""), 3000);
+    } catch { setMessage("❌ Connection error"); }
+  };
+
+  const removeExemption = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/fees/exemptions/remove`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ admission_number: selectedStudent.admission_number, month_year: exemptModal })
+      });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); setMessage(`❌ ${e.detail || 'Failed to remove exemption'}`); return; }
+      setExemptModal(null);
+      setMessage(`✅ Exemption for ${exemptModal} removed.`);
+      await fetchFeeStatus(selectedStudent.admission_number);
+      setTimeout(() => setMessage(""), 3000);
+    } catch { setMessage("❌ Connection error"); }
   };
 
   return (
     <div style={{ maxWidth: "800px", margin: "0 auto", padding: "20px", fontFamily: "sans-serif" }}>
 
-      {message && <div style={{ padding: "10px", backgroundColor: "#d4edda", color: "#155724", textAlign: "center", marginBottom: "15px", borderRadius: "5px" }}>{message}</div>}
+      {message && (
+        <div style={{ padding: "10px", backgroundColor: "#d4edda", color: "#155724", textAlign: "center", marginBottom: "15px", borderRadius: "5px" }}>
+          {message}
+        </div>
+      )}
 
-      {/* --- VIEW: SEARCH & DASHBOARD --- */}
+      {/* --- SEARCH VIEW --- */}
       {view === "search" && (
         <div style={{ animation: "fadeIn 0.5s" }}>
-           
-           {/* 1. STICKY SEARCH BAR (Stays at top while scrolling) */}
-           <div style={{ marginBottom: "30px", position: "sticky", top: "10px", zIndex: 100 }}>
-              <div style={{ 
-                  background: "white", 
-                  padding: "10px 15px", 
-                  borderRadius: "50px", 
-                  boxShadow: "0 10px 25px rgba(0,0,0,0.1)", 
-                  display: "flex", 
-                  alignItems: "center",
-                  border: "1px solid #e2e8f0"
-              }}>
-                  <span style={{ fontSize: "20px", marginLeft: "10px", marginRight: "15px" }}>🔍</span>
-                  <input 
-                      type="text" 
-                      placeholder="Search Student by Name or ID..." 
-                      value={query}
-                      onChange={handleSearch}
-                      autoFocus
-                      style={{ 
-                          flex: 1, 
-                          border: "none", 
-                          outline: "none", 
-                          fontSize: "18px", 
-                          color: "#334155" 
-                      }}
-                  />
-                  <button style={{
-                      backgroundColor: "#2563eb", color: "white", border: "none", 
-                      padding: "10px 25px", borderRadius: "30px", cursor: "pointer", fontWeight: "bold"
-                  }}>
-                      Find
-                  </button>
+          <div style={{ marginBottom: "30px", position: "sticky", top: "10px", zIndex: 100 }}>
+            <div style={{ background: "white", padding: "10px 15px", borderRadius: "50px", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", display: "flex", alignItems: "center", border: "1px solid #e2e8f0" }}>
+              <span style={{ fontSize: "20px", marginLeft: "10px", marginRight: "15px" }}>🔍</span>
+              <input
+                type="text"
+                placeholder="Search Student by Name or ID..."
+                value={query}
+                onChange={handleSearch}
+                autoFocus
+                style={{ flex: 1, border: "none", outline: "none", fontSize: "18px", color: "#334155" }}
+              />
+              <button style={{ backgroundColor: "#2563eb", color: "white", border: "none", padding: "10px 25px", borderRadius: "30px", cursor: "pointer", fontWeight: "bold" }}>Find</button>
+            </div>
+            {searchResults.length > 0 && (
+              <div style={{ marginTop: "10px", background: "white", borderRadius: "10px", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", overflow: "hidden", border: "1px solid #e2e8f0" }}>
+                {searchResults.map((student) => (
+                  <div key={student.admission_number} onClick={() => selectStudent(student)}
+                    style={{ padding: "15px", borderBottom: "1px solid #eee", cursor: "pointer", display: "flex", justifyContent: "space-between", transition: "background 0.2s" }}
+                    onMouseOver={e => e.currentTarget.style.backgroundColor = "#f9fafb"}
+                    onMouseOut={e => e.currentTarget.style.backgroundColor = "white"}
+                  >
+                    <span style={{ fontWeight: "bold", color: "#2c3e50" }}>{student.name}</span>
+                    <span style={{ color: "#7f8c8d" }}>Class {student.class_standard} {student.division}</span>
+                  </div>
+                ))}
               </div>
+            )}
+          </div>
 
-              {/* SEARCH RESULTS DROPDOWN (Appears only when searching) */}
-              {searchResults.length > 0 && (
-                 <div style={{ marginTop: "10px", background: "white", borderRadius: "10px", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", overflow: "hidden", border: "1px solid #e2e8f0" }}>
-                    {searchResults.map((student) => (
-                      <div key={student.admission_number} onClick={() => selectStudent(student)} style={{ padding: "15px", borderBottom: "1px solid #eee", cursor: "pointer", display: "flex", justifyContent: "space-between", transition: "background 0.2s" }} onMouseOver={(e) => e.currentTarget.style.backgroundColor="#f9fafb"} onMouseOut={(e) => e.currentTarget.style.backgroundColor="white"}>
-                          <span style={{ fontWeight: "bold", color: "#2c3e50" }}>{student.name}</span>
-                          <span style={{ color: "#7f8c8d" }}>Class {student.class_standard} {student.division}</span>
-                      </div>
-                    ))}
-                 </div>
-              )}
-           </div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "30px" }}>
+            <div>
+              <h1 style={{ margin: "0 0 10px 0", color: "#1e293b", fontSize: "32px" }}>Fee Collection</h1>
+              <p style={{ margin: 0, color: "#64748b", fontSize: "16px" }}>Secure payments & financial tracking.</p>
+            </div>
+            <div style={{ width: "200px", height: "200px" }}>
+              <SafeLottie animationData={feeAnim} />
+            </div>
+          </div>
 
-           {/* 2. HEADER & ANIMATION (Sits below search) */}
-           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "30px" }}>
-              <div>
-                  <h1 style={{ margin: "0 0 10px 0", color: "#1e293b", fontSize: "32px" }}>Fee Collection</h1>
-                  <p style={{ margin: 0, color: "#64748b", fontSize: "16px" }}>
-                      Secure payments & financial tracking.
-                  </p>
-              </div>
-              
-              {/* Lottie Animation (Top Right) */}
-              <div style={{ width: "200px", height: "200px" }}>
-                  <SafeLottie animationData={feeAnim} />
-              </div>
-           </div>
-
-           {/* 3. FEE TRENDS GRAPH (Pure SVG - Crash Proof) */}
-           <div className="card-glass" style={{ 
-                borderRadius: "20px", 
-                marginBottom: "40px",
-                backgroundColor: "white",
-                padding: "30px",
-                boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
-                border: "1px solid #f1f5f9"
-            }}>
-              <FeeGraph />
-           </div>
-
+          <div className="card-glass" style={{ borderRadius: "20px", marginBottom: "40px", backgroundColor: "white", padding: "30px", boxShadow: "0 10px 30px rgba(0,0,0,0.05)", border: "1px solid #f1f5f9" }}>
+            <FeeGraph />
+          </div>
         </div>
       )}
 
       {/* --- GRID VIEW --- */}
       {view === "grid" && selectedStudent && (
         <div className="animate-row">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-                <div>
-                    <h3 style={{ margin: "0", color: "#2c3e50" }}>{selectedStudent.name}</h3>
-                    <span style={{ color: "#7f8c8d" }}>Class {selectedStudent.class_standard} (Monthly: ₹{
-    selectedStudent.class_standard === "10" ? feeSettings.fee_class_10 :
-    selectedStudent.class_standard === "9" ? feeSettings.fee_class_9 :
-    feeSettings.fee_class_8
-})</span>
-                </div>
-                <button onClick={() => setView("search")} style={{ padding: "8px 15px", cursor: "pointer", backgroundColor: "#95a5a6", color: "white", border: "none", borderRadius: "5px" }}>← Change Student</button>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+            <div>
+              <h3 style={{ margin: "0", color: "#2c3e50" }}>{selectedStudent.name}</h3>
+              <span style={{ color: "#7f8c8d" }}>
+                Class {selectedStudent.class_standard} (Monthly: ₹{
+                  selectedStudent.class_standard === "10" ? feeSettings.fee_class_10 :
+                  selectedStudent.class_standard === "9" ? feeSettings.fee_class_9 : feeSettings.fee_class_8
+                })
+              </span>
             </div>
+            <button onClick={() => setView("search")} style={{ padding: "8px 15px", cursor: "pointer", backgroundColor: "#95a5a6", color: "white", border: "none", borderRadius: "5px" }}>← Change Student</button>
+          </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: "15px" }}>
-                {academicItems.map((item) => {
-                    const target = getTargetAmount(item);
-                    const paid = getPaidAmount(item);
-                    const isAdmission = item === "Admission Fee";
-                    
-                    let percentage = 0;
-                    if (isAdmission) {
-                        percentage = paid > 0 ? 100 : 0; 
-                    } else {
-                        percentage = Math.min((paid / target) * 100, 100);
-                    }
+          {/* --- MONTH GRID --- */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: "15px" }}>
+            {academicItems.map((item) => {
+              const target = getTargetAmount(item);
+              const paid = getPaidAmount(item);
+              const isAdmission = item === "Admission Fee";
+              const exempt = isExempt(item);
 
-                    const isFullyPaid = !isAdmission && paid >= target;
+              let percentage = 0;
+              if (isAdmission) percentage = paid > 0 ? 100 : 0;
+              else if (!exempt) percentage = Math.min((paid / target) * 100, 100);
 
-                    return (
-                        <div 
-                            key={item}
-                            onClick={() => handlePayClick(item)}
-                            className="card-glass"
-                            style={{ 
-                                height: "100px", 
-                                borderRadius: "10px", 
-                                display: "flex", 
-                                flexDirection: "column", 
-                                alignItems: "center", 
-                                justifyContent: "center",
-                                cursor: isFullyPaid ? "default" : "pointer",
-                                border: isFullyPaid ? "2px solid #27ae60" : "1px solid #ccc",
-                                position: "relative",
-                                overflow: "hidden",
-                                backgroundColor: "white"
-                            }}
-                        >
-                            {/* Filling Background Animation */}
-                            <div style={{
-                                position: "absolute", bottom: 0, left: 0, width: `${percentage}%`, height: "100%",
-                                backgroundColor: isAdmission ? "#fff3cd" : "#d4edda",
-                                transition: "width 0.8s cubic-bezier(0.4, 0, 0.2, 1)", zIndex: 0
-                            }}></div>
+              const isFullyPaid = !isAdmission && !exempt && paid >= target;
 
-                            <div style={{ zIndex: 1, textAlign: "center" }}>
-                                <span style={{ fontWeight: "bold", fontSize: isAdmission ? "14px" : "18px", display: "block", color: "#2c3e50" }}>{item}</span>
-                                {paid > 0 ? (
-                                    <span style={{ color: "#1e8449", fontSize: "12px", fontWeight: "bold" }}>
-                                        {isAdmission ? `Paid: ₹${paid}` : `${paid} / ${target}`}
-                                    </span>
-                                ) : (
-                                    <span style={{ color: "#e74c3c", fontSize: "12px" }}>-</span>
-                                )}
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
-
-            {/* --- NEW: GLASSMORPHISM MODAL (Fixes Black Shadow) --- */}
-            {paymentModal && (
-                <div style={{ 
-                    position: "fixed", 
-                    top: 0, 
-                    left: 0, 
-                    width: "100%", 
-                    height: "100%", 
-                    // BLUR EFFECT REPLACES BLACK SHADOW
-                    backgroundColor: "rgba(0, 0, 0, 0.3)", 
-                    backdropFilter: "blur(8px)", 
-                    display: "flex", 
-                    justifyContent: "center", 
-                    alignItems: "center", 
-                    zIndex: 1000 
-                }}>
-                    <div className="card-glass" style={{ 
-                        backgroundColor: "white", 
-                        padding: "30px", 
-                        borderRadius: "15px", 
-                        width: "350px", 
-                        boxShadow: "0 20px 50px rgba(0,0,0,0.1)",
-                        border: "1px solid rgba(255,255,255,0.8)"
-                    }}>
-                        <h3 style={{ marginTop: 0, color: "#2c3e50", textAlign: "center" }}>Payment for {paymentModal}</h3>
-                        <p style={{ textAlign: "center", color: "#7f8c8d", fontSize: "14px", marginBottom: "20px" }}>Enter the amount received below.</p>
-                        
-                        <form onSubmit={confirmPayment}>
-                            <label style={{ display: "block", marginBottom: "8px", fontWeight: "bold", fontSize: "12px", textTransform: "uppercase", color: "#95a5a6" }}>Amount (₹)</label>
-                            <input 
-                                type="number" 
-                                value={amount} 
-                                onChange={(e) => setAmount(e.target.value)} 
-                                autoFocus 
-                                required 
-                                style={{ 
-                                    width: "90%", 
-                                    padding: "12px", 
-                                    marginBottom: "20px", 
-                                    fontSize: "20px", 
-                                    borderRadius: "8px", 
-                                    border: "2px solid #e0e0e0",
-                                    outline: "none",
-                                    fontWeight: "bold",
-                                    color: "#2c3e50"
-                                }} 
-                            />
-                            
-                            <div style={{ display: "flex", gap: "10px" }}>
-                                <button type="submit" style={{ flex: 1, padding: "12px", backgroundColor: "#27ae60", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold", transition: "transform 0.1s" }}>Confirm Pay</button>
-                                <button type="button" onClick={() => setPaymentModal(null)} style={{ flex: 1, padding: "12px", backgroundColor: "#e74c3c", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}>Cancel</button>
-                            </div>
-                        </form>
-                    </div>
+              return (
+                <div
+                  key={item}
+                  onClick={() => handleCellClick(item)}
+                  className="card-glass"
+                  style={{
+                    height: "100px", borderRadius: "10px",
+                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                    cursor: isFullyPaid ? "default" : "pointer",
+                    border: exempt ? "2px solid #8b5cf6" : isFullyPaid ? "2px solid #27ae60" : "1px solid #ccc",
+                    position: "relative", overflow: "hidden", backgroundColor: "white"
+                  }}
+                >
+                  {/* Fill background */}
+                  <div style={{
+                    position: "absolute", bottom: 0, left: 0,
+                    width: exempt ? "100%" : `${percentage}%`, height: "100%",
+                    backgroundColor: exempt ? "#ede9fe" : isAdmission ? "#fff3cd" : "#d4edda",
+                    transition: "width 0.8s cubic-bezier(0.4, 0, 0.2, 1)", zIndex: 0
+                  }} />
+                  <div style={{ zIndex: 1, textAlign: "center" }}>
+                    <span style={{ fontWeight: "bold", fontSize: isAdmission ? "14px" : "18px", display: "block", color: exempt ? "#6d28d9" : "#2c3e50" }}>
+                      {item}
+                    </span>
+                    {exempt ? (
+                      <span style={{ color: "#6d28d9", fontSize: "11px", fontWeight: "700" }}>⊘ Exempt</span>
+                    ) : paid > 0 ? (
+                      <span style={{ color: "#1e8449", fontSize: "12px", fontWeight: "bold" }}>
+                        {isAdmission ? `Paid: ₹${paid}` : `${paid} / ${target}`}
+                      </span>
+                    ) : (
+                      <span style={{ color: "#e74c3c", fontSize: "12px" }}>-</span>
+                    )}
+                  </div>
                 </div>
-            )}
+              );
+            })}
+          </div>
+
+          {/* --- PAYMENT MODAL --- */}
+          {paymentModal && (
+            <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", backgroundColor: "rgba(0,0,0,0.3)", backdropFilter: "blur(8px)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 }}>
+              <div className="card-glass" style={{ backgroundColor: "white", padding: "30px", borderRadius: "15px", width: "350px", boxShadow: "0 20px 50px rgba(0,0,0,0.1)", border: "1px solid rgba(255,255,255,0.8)" }}>
+                <h3 style={{ marginTop: 0, color: "#2c3e50", textAlign: "center" }}>Payment for {paymentModal}</h3>
+                <p style={{ textAlign: "center", color: "#7f8c8d", fontSize: "14px", marginBottom: "20px" }}>Enter the amount received below.</p>
+                <form onSubmit={confirmPayment}>
+                  <label style={{ display: "block", marginBottom: "8px", fontWeight: "bold", fontSize: "12px", textTransform: "uppercase", color: "#95a5a6" }}>Amount (₹)</label>
+                  <input
+                    type="number" value={amount} onChange={e => setAmount(e.target.value)}
+                    autoFocus required
+                    style={{ width: "90%", padding: "12px", marginBottom: "20px", fontSize: "20px", borderRadius: "8px", border: "2px solid #e0e0e0", outline: "none", fontWeight: "bold", color: "#2c3e50" }}
+                  />
+                  <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+                    <button type="submit" style={{ flex: 1, padding: "12px", backgroundColor: "#27ae60", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}>Confirm Pay</button>
+                    <button type="button" onClick={() => setPaymentModal(null)} style={{ flex: 1, padding: "12px", backgroundColor: "#e74c3c", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}>Cancel</button>
+                  </div>
+                </form>
+                {!paymentModal.startsWith("Admission") && (
+                  <button onClick={markExempt} style={{ width: "100%", padding: "10px", backgroundColor: "#f5f3ff", color: "#6d28d9", border: "1px solid #c4b5fd", borderRadius: "8px", cursor: "pointer", fontWeight: "600", fontSize: "13px" }}>
+                    ⊘ Mark as Exempt (Waive this Month's Fee)
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* --- EXEMPT MODAL (Remove) --- */}
+          {exemptModal && (
+            <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", backgroundColor: "rgba(0,0,0,0.3)", backdropFilter: "blur(8px)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 }}>
+              <div className="card-glass" style={{ backgroundColor: "white", padding: "30px", borderRadius: "15px", width: "350px", boxShadow: "0 20px 50px rgba(0,0,0,0.1)", border: "2px solid #c4b5fd" }}>
+                <div style={{ textAlign: "center", marginBottom: "22px" }}>
+                  <div style={{ fontSize: "40px", marginBottom: "8px" }}>⊘</div>
+                  <h3 style={{ margin: "0 0 6px", color: "#6d28d9" }}>{exemptModal}</h3>
+                  <p style={{ color: "#6b7280", fontSize: "14px", margin: 0 }}>This month's fee is currently <strong>exempt</strong>. Remove to mark it as pending again.</p>
+                </div>
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <button onClick={removeExemption} style={{ flex: 1, padding: "12px", backgroundColor: "#e74c3c", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold", fontSize: "13px" }}>🔄 Remove Exemption</button>
+                  <button onClick={() => setExemptModal(null)} style={{ flex: 1, padding: "12px", backgroundColor: "#f1f5f9", color: "#374151", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold", fontSize: "13px" }}>Close</button>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       )}
     </div>

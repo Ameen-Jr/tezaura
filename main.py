@@ -156,6 +156,15 @@ def init_db():
                 content TEXT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
+            CREATE TABLE IF NOT EXISTS fee_exemptions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                student_id INTEGER NOT NULL,
+                month_year TEXT NOT NULL,
+                reason TEXT DEFAULT '',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(student_id, month_year),
+                FOREIGN KEY(student_id) REFERENCES students(id)
+            );
         """)
         conn.execute("INSERT OR IGNORE INTO system_settings (key, value) VALUES ('academic_year', '2025-26')")
         conn.execute("INSERT OR IGNORE INTO system_settings (key, value) VALUES ('setup_completed', '0')")
@@ -552,6 +561,56 @@ def add_fee(fee: FeeSchema):
             return {"status": "success", "message": f"Fee recorded for {student[1]}"}
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
 
+# --- FEE EXEMPTIONS ---
+@app.get("/fees/exemptions/{admission_number}")
+def get_fee_exemptions(admission_number: str):
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id FROM students WHERE admission_number = ?", (admission_number,))
+            student = cursor.fetchone()
+            if not student: raise HTTPException(status_code=404, detail="Student not found")
+            cursor.execute("SELECT month_year, reason FROM fee_exemptions WHERE student_id = ? ORDER BY created_at DESC", (student[0],))
+            return [{"month_year": r[0], "reason": r[1]} for r in cursor.fetchall()]
+    except HTTPException: raise
+    except Exception as e: raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/fees/exemptions")
+def add_fee_exemption(payload: dict):
+    try:
+        admission_number = payload.get("admission_number")
+        month_year = payload.get("month_year")
+        reason = payload.get("reason", "")
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id FROM students WHERE admission_number = ?", (admission_number,))
+            student = cursor.fetchone()
+            if not student: raise HTTPException(status_code=404, detail="Student not found")
+            cursor.execute("INSERT OR IGNORE INTO fee_exemptions (student_id, month_year, reason) VALUES (?, ?, ?)",
+                           (student[0], month_year, reason))
+            conn.commit()
+            return {"status": "ok"}
+    except HTTPException: raise
+    except Exception as e: raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/fees/exemptions/remove")
+def remove_fee_exemption(payload: dict):
+    try:
+        admission_number = payload.get("admission_number")
+        month_year = payload.get("month_year")
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id FROM students WHERE admission_number = ?", (admission_number,))
+            student = cursor.fetchone()
+            if not student: raise HTTPException(status_code=404, detail="Student not found")
+            cursor.execute("DELETE FROM fee_exemptions WHERE student_id = ? AND month_year = ?",
+                           (student[0], month_year))
+            conn.commit()
+            return {"status": "ok"}
+    except HTTPException: raise
+    except Exception as e: raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/fees/{admission_number}")
 def get_fee_history(admission_number: str):
     try:
@@ -641,8 +700,15 @@ def get_pending_fees(class_std: str, month: str, division: str = ""):
                     month_idx = ACADEMIC_ORDER.index(month) if month in ACADEMIC_ORDER else 0
                     return new_rate if month_idx >= from_idx else old_rate
                 total_due = 0
+                # Get exempt months for this student
+                cursor.execute("SELECT month_year FROM fee_exemptions WHERE student_id = ?", (student_id,))
+                exempt_month_names = []
+                for er in cursor.fetchall():
+                    for m in ACADEMIC_ORDER:
+                        if m in er[0]: exempt_month_names.append(m)
+
                 for req_month in required_months:
-                    if req_month not in paid_month_names:
+                    if req_month not in paid_month_names and req_month not in exempt_month_names:
                         pending_months.append(req_month)
                         total_due += get_fee_for_month(class_std, req_month)
                 if pending_months:
