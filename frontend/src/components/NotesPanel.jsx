@@ -155,7 +155,9 @@ const NotesPanel = () => {
                     </div>
                     {note.created_at && (
                       <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '3px' }}>
-                        {new Date(note.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        {new Date(note.created_at.replace(' ', 'T') + 'Z').toLocaleString('en-IN', {
+                          day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true
+                        })}
                       </div>
                     )}
                   </div>
