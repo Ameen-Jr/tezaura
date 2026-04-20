@@ -119,6 +119,7 @@ def delete_old_backups(service, folder_id):
 
 
 def upload_backup_to_drive():
+    import zipfile
     from googleapiclient.http import MediaFileUpload
 
     folder_id = get_setting('drive_folder_id')
@@ -133,12 +134,21 @@ def upload_backup_to_drive():
         service = get_drive_service()
 
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
-        backup_name = f"Tezaura_Backup_{timestamp}.db"
+        backup_name = f"Tezaura_Backup_{timestamp}.zip"
         temp_path = os.path.join(BASE_DIR, f"temp_{backup_name}")
-        shutil.copy(DB_PATH, temp_path)
+
+        with zipfile.ZipFile(temp_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+            zf.write(DB_PATH, "classflow.db")
+            photos_dir = os.path.join(BASE_DIR, "uploaded_photos")
+            if os.path.exists(photos_dir):
+                for root, dirs, files in os.walk(photos_dir):
+                    for file in files:
+                        filepath = os.path.join(root, file)
+                        arcname = os.path.relpath(filepath, BASE_DIR).replace("\\", "/")
+                        zf.write(filepath, arcname)
 
         file_metadata = {'name': backup_name, 'parents': [folder_id]}
-        media = MediaFileUpload(temp_path, mimetype='application/x-sqlite3', resumable=False)
+        media = MediaFileUpload(temp_path, mimetype='application/zip', resumable=False)
         service.files().create(body=file_metadata, media_body=media, fields='id,name').execute()
 
         deleted = delete_old_backups(service, folder_id)
@@ -158,6 +168,7 @@ def upload_backup_to_drive():
                 os.remove(temp_path)
             except Exception:
                 pass
+
 
 
 def check_and_run_weekly():

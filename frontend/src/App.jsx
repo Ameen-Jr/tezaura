@@ -14,6 +14,7 @@ import CustomListMaker from './components/CustomListMaker';
 import InteractiveMascot from './components/InteractiveMascot';
 import SafeLottie from './components/SafeLottie';
 import SessionBadge from './components/SessionBadge';
+import NotesPanel from './components/NotesPanel';
 import About from './components/About';
 import BackupManager from './components/BackupManager';
 import Analytics from './components/Analytics';
@@ -632,7 +633,9 @@ function DashboardHome() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ academic_year: promptYear })
       });
-      // No longer using localStorage — setup state is tracked in the DB
+      // Mark setup complete NOW so the prompt never re-appears
+      // even if the user navigates away before finishing fee/centre steps
+      await fetch(`${API_BASE}/settings/setup-status`, { method: "POST" });
       setYearPrompt(false);
       setYearError("");
       // Show fee setup next
@@ -661,15 +664,16 @@ function DashboardHome() {
   };
 
   const confirmCentre = async () => {
-    if (!promptCentre.whatsapp_number.trim()) { setCentrePrompt(false); return; }
     try {
-      await fetch(`${API_BASE}/settings/centre`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(promptCentre)
-      });
+      if (promptCentre.whatsapp_number.trim()) {
+        await fetch(`${API_BASE}/settings/centre`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(promptCentre)
+        });
+      }
     } catch (e) { console.error(e); }
-    // Mark first-launch setup as complete in DB so prompts don't show again
+    // Always mark setup complete (whether or not WhatsApp was provided)
     try {
       await fetch(`${API_BASE}/settings/setup-status`, { method: "POST" });
     } catch (e) { console.error(e); }
@@ -1195,8 +1199,9 @@ function App() {
             </p>
           </div>
 
-          <div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
             <SessionBadge />
+            {view === 'home' && <NotesPanel />}
           </div>
 
         </div>

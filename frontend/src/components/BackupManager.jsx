@@ -104,7 +104,7 @@ const BackupManager = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Tezaura_Backup_${new Date().toISOString().slice(0, 10)}.db`;
+      a.download = `Tezaura_Backup_${new Date().toISOString().slice(0, 10)}.zip`;
       a.style.display = 'none';
       document.body.appendChild(a);
       a.click();

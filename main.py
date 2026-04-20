@@ -151,6 +151,11 @@ def init_db():
                 return_date DATE,
                 FOREIGN KEY(student_id) REFERENCES students(id)
             );
+            CREATE TABLE IF NOT EXISTS notes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                content TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
         """)
         conn.execute("INSERT OR IGNORE INTO system_settings (key, value) VALUES ('academic_year', '2025-26')")
         conn.execute("INSERT OR IGNORE INTO system_settings (key, value) VALUES ('setup_completed', '0')")
@@ -2007,45 +2012,87 @@ async def get_recent_activity():
 
 @app.get("/backup/download")
 async def download_backup():
-    original_db = DB_PATH
+    import zipfile
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    backup_filename = os.path.join(BASE_DIR, f"Tezaura_Backup_{timestamp}.db")
-    
-    shutil.copy(original_db, backup_filename)
-    
+    zip_filename = os.path.join(BASE_DIR, f"Tezaura_Backup_{timestamp}.zip")
+
+    with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zf:
+        zf.write(DB_PATH, "classflow.db")
+        photos_dir = os.path.join(BASE_DIR, "uploaded_photos")
+        if os.path.exists(photos_dir):
+            for root, dirs, files in os.walk(photos_dir):
+                for file in files:
+                    filepath = os.path.join(root, file)
+                    arcname = os.path.relpath(filepath, BASE_DIR).replace("\\", "/")
+                    zf.write(filepath, arcname)
+
     def cleanup():
         try:
-            os.remove(backup_filename)
-            print(f"✅ Temp backup deleted: {backup_filename}")
-        except OSError as e:
-            print(f"⚠️ Could not delete temp backup: {e}")
-    
+            os.remove(zip_filename)
+        except OSError:
+            pass
+
     return FileResponse(
-        path=backup_filename,
-        filename=os.path.basename(backup_filename),  # basename only for Content-Disposition
-        media_type='application/x-sqlite3',
+        path=zip_filename,
+        filename=os.path.basename(zip_filename),
+        media_type='application/zip',
         background=BackgroundTask(cleanup)
     )
 
 @app.post("/backup/restore")
 async def restore_backup(file: UploadFile = File(...)):
-    db_filename = DB_PATH
-    backup_filename = str(DB_PATH) + ".old"
-
-    # 1. SILENT AUTO-BACKUP: Rename current DB to .old
-    if os.path.exists(db_filename):
-        # If an old backup exists, remove it first to avoid conflicts
-        if os.path.exists(backup_filename):
-            os.remove(backup_filename)
-        
-        os.rename(db_filename, backup_filename)
-
-    # 2. SAVE NEW FILE: Write the uploaded file as the active DB
+    import zipfile, io
     content = await file.read()
-    with open(db_filename, "wb") as f:
-        f.write(content)
+    filename = file.filename or ""
 
-    return {"message": "Database restored successfully. Please restart the software."}
+    # Auto-backup current DB before overwriting
+    backup_old = str(DB_PATH) + ".old"
+    if os.path.exists(DB_PATH):
+        if os.path.exists(backup_old):
+            os.remove(backup_old)
+        shutil.copy(DB_PATH, backup_old)
+
+    # Detect format: ZIP starts with PK magic bytes
+    if filename.endswith(".zip") or content[:4] == b'PK\x03\x04':
+        with zipfile.ZipFile(io.BytesIO(content)) as zf:
+            names = zf.namelist()
+            if "classflow.db" in names:
+                zf.extract("classflow.db", BASE_DIR)
+            for name in names:
+                if name.startswith("uploaded_photos/") and not name.endswith("/"):
+                    zf.extract(name, BASE_DIR)
+    else:
+        # Legacy .db format
+        with open(DB_PATH, "wb") as f:
+            f.write(content)
+
+    return {"message": "Backup restored successfully. Please restart the software."}
+
+
+# --- NOTES API ---
+@app.get("/notes")
+def get_notes():
+    with get_db() as conn:
+        rows = conn.execute("SELECT id, content, created_at FROM notes ORDER BY created_at DESC").fetchall()
+        return [{"id": r[0], "content": r[1], "created_at": r[2]} for r in rows]
+
+@app.post("/notes")
+def add_note(payload: dict):
+    content = (payload.get("content") or "").strip()
+    if not content:
+        raise HTTPException(status_code=400, detail="Content cannot be empty")
+    with get_db() as conn:
+        cursor = conn.execute("INSERT INTO notes (content) VALUES (?)", (content,))
+        conn.commit()
+        return {"id": cursor.lastrowid, "content": content}
+
+@app.delete("/notes/{note_id}")
+def delete_note(note_id: int):
+    with get_db() as conn:
+        conn.execute("DELETE FROM notes WHERE id = ?", (note_id,))
+        conn.commit()
+        return {"message": "Deleted"}
+
 
 @app.get("/analytics/class-performance")
 def get_class_performance(class_std: str, division: str = ""):
