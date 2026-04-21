@@ -70,7 +70,7 @@ function FeeCollection() {
     try {
       const [feeRes, exemptRes] = await Promise.all([
         fetch(`${API_BASE}/fees/${admNo}`),
-        fetch(`${API_BASE}/fees/exemptions/${admNo}`)
+        fetch(`${API_BASE}/fee-exemptions/${admNo}`)
       ]);
       if (feeRes.ok) setFeeHistory(await feeRes.json());
       if (exemptRes.ok) setExemptions(await exemptRes.json());
@@ -146,7 +146,7 @@ function FeeCollection() {
   // --- EXEMPT ---
   const markExempt = async () => {
     try {
-      const res = await fetch(`${API_BASE}/fees/exemptions`, {
+      const res = await fetch(`${API_BASE}/fee-exemptions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ admission_number: selectedStudent.admission_number, month_year: paymentModal, reason: "" })
@@ -161,7 +161,7 @@ function FeeCollection() {
 
   const removeExemption = async () => {
     try {
-      const res = await fetch(`${API_BASE}/fees/exemptions/remove`, {
+      const res = await fetch(`${API_BASE}/fee-exemptions/remove`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ admission_number: selectedStudent.admission_number, month_year: exemptModal })

@@ -15,10 +15,24 @@ from datetime import datetime
 from contextlib import contextmanager, asynccontextmanager
 
 # --- FROZEN-APP PATH RESOLUTION ---
-# When bundled by PyInstaller, sys.frozen is True and sys.executable
-# points to the .exe — ensuring the DB always lives next to it.
+# When bundled by PyInstaller, use %LOCALAPPDATA%\Tezaura so all writes
+# go to a user-writable folder regardless of where the EXE is installed.
 if getattr(sys, 'frozen', False):
-    BASE_DIR = os.path.dirname(sys.executable)
+    _local_app_data = os.environ.get('LOCALAPPDATA', os.path.expanduser('~'))
+    BASE_DIR = os.path.join(_local_app_data, 'Tezaura')
+    os.makedirs(BASE_DIR, exist_ok=True)
+    # --- Migrate data from old EXE-adjacent location (one-time) ---
+    _old_base = os.path.dirname(sys.executable)
+    _old_db = os.path.join(_old_base, 'classflow.db')
+    _new_db = os.path.join(BASE_DIR, 'classflow.db')
+    if os.path.exists(_old_db) and not os.path.exists(_new_db):
+        import shutil as _sh
+        _sh.copy2(_old_db, _new_db)
+    _old_photos = os.path.join(_old_base, 'uploaded_photos')
+    _new_photos = os.path.join(BASE_DIR, 'uploaded_photos')
+    if os.path.exists(_old_photos) and not os.path.exists(_new_photos):
+        import shutil as _sh
+        _sh.copytree(_old_photos, _new_photos)
 else:
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -562,7 +576,7 @@ def add_fee(fee: FeeSchema):
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
 
 # --- FEE EXEMPTIONS ---
-@app.get("/fees/exemptions/{admission_number}")
+@app.get("/fee-exemptions/{admission_number}")
 def get_fee_exemptions(admission_number: str):
     try:
         with get_db() as conn:
@@ -575,7 +589,7 @@ def get_fee_exemptions(admission_number: str):
     except HTTPException: raise
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/fees/exemptions")
+@app.post("/fee-exemptions")
 def add_fee_exemption(payload: dict):
     try:
         admission_number = payload.get("admission_number")
@@ -593,7 +607,7 @@ def add_fee_exemption(payload: dict):
     except HTTPException: raise
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/fees/exemptions/remove")
+@app.post("/fee-exemptions/remove")
 def remove_fee_exemption(payload: dict):
     try:
         admission_number = payload.get("admission_number")
